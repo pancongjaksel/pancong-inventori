@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wireframe — Inventori Pancong Jaksel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#FAF6ED;
+    --cream-2:#F1EADA;
+    --charcoal:#2A211B;
+    --charcoal-2:#4A3E34;
+    --amber:#BE7B2E;
+    --amber-dark:#8C4A1F;
+    --teal:#3E7C6B;
+    --teal-bg:#E4EFEC;
+    --alert:#C1432A;
+    --alert-bg:#F8E4DE;
+    --produksi:#4A5D73;
+    --produksi-bg:#E4E9EE;
+    --glagahsari:#6B8E4E;
+    --glagahsari-bg:#EBF1E4;
+    --ugm:#7A4E68;
+    --ugm-bg:#F0E6ED;
+    --line:#E3D9C6;
+    --white:#FFFFFF;
+    --radius:16px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:#DDD3BE;
+    font-family:'Inter',sans-serif;
+    color:var(--charcoal);
+    display:flex;
+    justify-content:center;
+    padding:32px 12px;
+    min-height:100vh;
+  }
+  .note{
+    position:fixed; top:16px; left:50%; transform:translateX(-50%);
+    font-family:'Inter'; font-size:12px; color:#6b5f4f; text-align:center;
+    max-width:380px;
+  }
+  .phone{
+    width:390px;
+    height:820px;
+    background:var(--cream);
+    border-radius:38px;
+    border:8px solid var(--charcoal);
+    overflow:hidden;
+    position:relative;
+    box-shadow:0 30px 60px rgba(0,0,0,.35);
+    display:flex;
+    flex-direction:column;
+  }
+  .notch{
+    position:absolute; top:0; left:50%; transform:translateX(-50%);
+    width:130px; height:22px; background:var(--charcoal);
+    border-radius:0 0 14px 14px; z-index:50;
+  }
+
+  /* ===== TOP BAR ===== */
+  .topbar{
+    padding:34px 18px 10px;
+    background:var(--charcoal);
+    color:var(--cream);
+    flex-shrink:0;
+  }
+  .topbar-row{display:flex; justify-content:space-between; align-items:center;}
+  .brand{
+    font-family:'Fraunces',serif; font-weight:600; font-size:19px; letter-spacing:.2px;
+  }
+  .brand span{color:var(--amber);}
+  .role-toggle{
+    display:flex; background:rgba(255,255,255,.1); border-radius:20px; padding:3px; gap:2px;
+  }
+  .role-toggle button{
+    border:none; background:transparent; color:#C9BEB0; font-family:'Inter'; font-weight:600;
+    font-size:11px; padding:6px 11px; border-radius:16px; cursor:pointer;
+  }
+  .role-toggle button.active{background:var(--amber); color:var(--charcoal);}
+
+  .gudang-row{
+    display:flex; gap:6px; margin-top:14px; overflow-x:auto;
+  }
+  .gudang-chip{
+    font-family:'Inter'; font-weight:600; font-size:12px; padding:7px 13px;
+    border-radius:20px; border:1px solid rgba(255,255,255,.25); color:#D8CFC2;
+    background:transparent; white-space:nowrap; cursor:pointer;
+  }
+  .gudang-chip.on{background:var(--cream); color:var(--charcoal); border-color:var(--cream);}
+
+  /* ===== SCREENS ===== */
+  .screen{ flex:1; overflow-y:auto; display:none; padding:16px 16px 90px; }
+  .screen.active{display:block;}
+
+  .eyebrow{
+    font-family:'IBM Plex Mono'; font-size:10px; font-weight:600; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--amber-dark); margin-bottom:4px;
+  }
+  h1.page-title{
+    font-family:'Fraunces',serif; font-size:22px; font-weight:600; margin-bottom:14px;
+  }
+
+  /* alert banner */
+  .alert-banner{
+    background:var(--alert-bg); border:1px solid #E8B7A8; color:var(--alert);
+    border-radius:12px; padding:10px 12px; font-size:12.5px; font-weight:600;
+    display:flex; align-items:center; gap:8px; margin-bottom:14px;
+  }
+
+  /* category gauge cards */
+  .gauge-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:18px;}
+  .gauge-card{
+    background:var(--white); border:1px solid var(--line); border-radius:var(--radius);
+    padding:13px; position:relative;
+  }
+  .gauge-card .cat-name{font-size:11.5px; font-weight:600; color:var(--charcoal-2); margin-bottom:8px;}
+  .pancong{
+    width:46px; height:46px; border-radius:50%;
+    background:conic-gradient(var(--amber) calc(var(--pct)*1%), #EFE6D4 0);
+    display:flex; align-items:center; justify-content:center; margin-bottom:6px;
+  }
+  .pancong::after{
+    content:'';
+    width:33px; height:33px; border-radius:50%; background:var(--white);
+  }
+  .gauge-card .pct-label{
+    position:absolute; top:52px; left:29px; font-family:'IBM Plex Mono'; font-size:10.5px; font-weight:600;
+  }
+  .gauge-card .item-count{font-size:11px; color:#8a7c68;}
+
+  /* quick actions */
+  .qa-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px;}
+  .qa-btn{
+    background:var(--white); border:1px solid var(--line); border-radius:var(--radius);
+    padding:14px 12px; text-align:left; cursor:pointer; font-family:'Inter';
+  }
+  .qa-btn .ic{font-size:18px; margin-bottom:6px; display:block;}
+  .qa-btn .lbl{font-size:12.5px; font-weight:700;}
+  .qa-btn .sub{font-size:10.5px; color:#8a7c68; margin-top:2px;}
+
+  section.block{margin-bottom:20px;}
+  .block-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;}
+  .block-head h2{font-family:'Fraunces',serif; font-size:15.5px; font-weight:600;}
+  .see-all{font-size:11px; color:var(--amber-dark); font-weight:600;}
+
+  /* item rows */
+  .item-row{
+    background:var(--white); border:1px solid var(--line); border-radius:12px;
+    padding:11px 12px; display:flex; align-items:center; gap:10px; margin-bottom:8px;
+  }
+  .item-row .bar-wrap{
+    width:34px; height:34px; border-radius:9px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono';
+    font-weight:700; font-size:9.5px; color:var(--white);
+  }
+  .item-row .info{flex:1; min-width:0;}
+  .item-row .name{font-size:12.5px; font-weight:600;}
+  .item-row .meta{font-size:10.5px; color:#8a7c68; margin-top:1px;}
+  .item-row .qty{text-align:right; font-family:'IBM Plex Mono'; font-weight:600; font-size:12.5px;}
+  .item-row .qty .u{display:block; font-size:9px; color:#8a7c68; font-weight:500;}
+  .status-dot{width:7px; height:7px; border-radius:50%; display:inline-block; margin-right:4px;}
+
+  .tag{
+    font-family:'IBM Plex Mono'; font-size:9px; font-weight:600; padding:2px 6px; border-radius:5px;
+  }
+  .tag.produksi{background:var(--produksi-bg); color:var(--produksi);}
+  .tag.glagahsari{background:var(--glagahsari-bg); color:var(--glagahsari);}
+  .tag.ugm{background:var(--ugm-bg); color:var(--ugm);}
+
+  .cat-filter{display:flex; gap:6px; margin-bottom:12px; overflow-x:auto;}
+  .cat-filter button{
+    font-family:'Inter'; font-size:11px; font-weight:600; padding:6px 12px; border-radius:16px;
+    border:1px solid var(--line); background:var(--white); color:var(--charcoal-2); white-space:nowrap; cursor:pointer;
+  }
+  .cat-filter button.on{background:var(--charcoal); color:var(--cream); border-color:var(--charcoal);}
+
+  /* forms */
+  .field{margin-bottom:14px;}
+  .field label{
+    display:block; font-size:11.5px; font-weight:700; margin-bottom:6px; color:var(--charcoal-2);
+  }
+  .field select, .field input, .field textarea{
+    width:100%; border:1px solid var(--line); background:var(--white); border-radius:10px;
+    padding:11px 12px; font-family:'Inter'; font-size:13px; color:var(--charcoal);
+  }
+  .field textarea{resize:none; height:60px;}
+  .stepper{display:flex; align-items:center; gap:12px;}
+  .stepper button{
+    width:40px; height:40px; border-radius:10px; border:1px solid var(--line); background:var(--white);
+    font-size:18px; font-weight:700; cursor:pointer; color:var(--amber-dark);
+  }
+  .stepper .val{
+    font-family:'IBM Plex Mono'; font-size:20px; font-weight:700; min-width:56px; text-align:center;
+  }
+  .primary-btn{
+    width:100%; background:var(--amber-dark); color:var(--cream); border:none; border-radius:12px;
+    padding:14px; font-family:'Inter'; font-weight:700; font-size:13.5px; cursor:pointer; margin-top:6px;
+  }
+  .primary-btn:active{opacity:.85;}
+  .ghost-btn{
+    width:100%; background:transparent; color:var(--charcoal-2); border:1px solid var(--line); border-radius:12px;
+    padding:12px; font-family:'Inter'; font-weight:600; font-size:12.5px; cursor:pointer; margin-top:8px;
+  }
+
+  .transfer-arrow{
+    display:flex; align-items:center; justify-content:center; gap:10px; margin:2px 0 14px;
+  }
+  .transfer-box{
+    flex:1; background:var(--white); border:1px solid var(--line); border-radius:10px; padding:10px; text-align:center;
+  }
+  .transfer-box .lbl{font-size:9.5px; color:#8a7c68; font-weight:600;}
+  .transfer-box .val{font-size:12.5px; font-weight:700; margin-top:2px;}
+
+  .pending-card{
+    background:var(--white); border:1px dashed var(--amber); border-radius:12px; padding:12px; margin-bottom:10px;
+  }
+  .pending-card .top{display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;}
+  .pending-card .route{font-size:12px; font-weight:700;}
+  .pending-card .when{font-size:10px; color:#8a7c68;}
+  .pending-card .confirm{
+    background:var(--teal-bg); color:var(--teal); border:none; border-radius:8px; padding:7px 10px;
+    font-size:11px; font-weight:700; width:100%; margin-top:8px; cursor:pointer;
+  }
+
+  /* riwayat */
+  .log-item{display:flex; gap:10px; margin-bottom:14px;}
+  .log-dot{
+    width:30px; height:30px; border-radius:9px; flex-shrink:0; display:flex; align-items:center;
+    justify-content:center; font-size:14px;
+  }
+  .log-body{flex:1;}
+  .log-title{font-size:12.5px; font-weight:600;}
+  .log-sub{font-size:10.5px; color:#8a7c68; margin-top:1px;}
+  .log-qty{font-family:'IBM Plex Mono'; font-size:12px; font-weight:700; align-self:center;}
+
+  /* crew simple screen */
+  .crew-wrap{padding:20px 18px 90px; text-align:left;}
+  .crew-hello{font-family:'Fraunces',serif; font-size:19px; font-weight:600; margin-bottom:2px;}
+  .crew-sub{font-size:12px; color:#8a7c68; margin-bottom:18px;}
+  .crew-search{
+    width:100%; border:1px solid var(--line); border-radius:12px; padding:13px 14px; font-size:13px;
+    margin-bottom:14px; background:var(--white);
+  }
+  .crew-item-btn{
+    width:100%; display:flex; justify-content:space-between; align-items:center; background:var(--white);
+    border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:9px; cursor:pointer;
+    transition:border-color .15s, background .15s;
+  }
+  .crew-item-btn.picked{border-color:var(--amber-dark); background:#FCF6EB;}
+  .crew-item-btn .name{font-size:13.5px; font-weight:700;}
+  .crew-item-btn .unit{font-size:10.5px; color:#8a7c68;}
+  .crew-item-btn .chev{color:var(--amber-dark); font-weight:700; flex-shrink:0;}
+  .crew-item-btn .mini-stepper{display:flex; align-items:center; gap:10px; flex-shrink:0;}
+  .crew-item-btn .mini-stepper button{
+    width:28px; height:28px; border-radius:8px; border:1px solid var(--line); background:var(--white);
+    font-size:15px; font-weight:700; color:var(--amber-dark); cursor:pointer;
+  }
+  .crew-item-btn .mini-stepper .val{
+    font-family:'IBM Plex Mono'; font-size:14px; font-weight:700; min-width:20px; text-align:center;
+  }
+
+  .crew-cart-bar{
+    position:absolute; left:14px; right:14px; bottom:88px; z-index:35;
+    background:var(--charcoal); color:var(--cream); border-radius:14px; padding:12px 14px;
+    display:none; align-items:center; justify-content:space-between;
+    box-shadow:0 10px 24px rgba(0,0,0,.25);
+  }
+  .crew-cart-bar.show{display:flex;}
+  .crew-cart-bar .txt{font-size:12px;}
+  .crew-cart-bar .txt b{color:var(--amber); font-family:'IBM Plex Mono';}
+  .crew-cart-bar button{
+    background:var(--amber); color:var(--charcoal); border:none; border-radius:9px; padding:9px 14px;
+    font-size:12px; font-weight:700; cursor:pointer;
+  }
+
+  .review-list{margin:14px 0;}
+  .review-row{
+    display:flex; justify-content:space-between; align-items:center; padding:10px 0;
+    border-bottom:1px solid var(--line); font-size:12.5px;
+  }
+  .review-row .rn{font-weight:600;}
+  .review-row .rq{font-family:'IBM Plex Mono'; font-weight:700; color:var(--amber-dark);}
+
+  /* opname */
+  .opname-loc-card{
+    display:flex; justify-content:space-between; align-items:center; background:var(--white);
+    border:1px solid var(--line); border-radius:12px; padding:13px 14px; margin-bottom:8px; cursor:pointer;
+  }
+  .oln{font-size:12.5px; font-weight:700; display:flex; align-items:center;}
+  .olstatus{font-size:10px; font-weight:700; padding:4px 9px; border-radius:12px;}
+  .olstatus.todo{background:var(--alert-bg); color:var(--alert);}
+  .olstatus.done{background:var(--teal-bg); color:var(--teal);}
+
+  .opname-row{
+    display:grid; grid-template-columns:1.6fr .8fr .8fr .8fr; gap:6px; align-items:center;
+    padding:10px 4px; border-bottom:1px solid var(--line);
+  }
+  .opname-row.header{
+    font-size:9.5px; font-weight:700; color:#8a7c68; text-transform:uppercase; letter-spacing:.03em;
+  }
+  .opname-row .oc-name{font-size:12px; font-weight:600;}
+  .opname-row .oc-num{text-align:center; font-family:'IBM Plex Mono'; font-size:12px;}
+  .opname-row input.oc-input{
+    width:100%; text-align:center; border:1px solid var(--line); border-radius:8px; padding:6px 2px;
+    font-family:'IBM Plex Mono'; font-size:12px;
+  }
+  .opname-row .oc-diff{font-weight:700;}
+  .opname-row .oc-diff.zero{color:var(--teal);}
+  .opname-row .oc-diff.neg{color:var(--alert);}
+  .opname-row .oc-diff.pos{color:var(--amber-dark);}
+
+  .opname-summary-bar{
+    display:flex; justify-content:space-between; align-items:center; background:var(--cream-2);
+    border-radius:10px; padding:10px 12px; margin:14px 0; font-size:11.5px; font-weight:600;
+  }
+
+  /* bottom nav */
+  .bottomnav{
+    position:absolute; bottom:0; left:0; right:0; height:76px; background:var(--white);
+    border-top:1px solid var(--line); display:flex; align-items:center; padding:0 6px;
+    padding-bottom:14px; z-index:40;
+  }
+  .nav-btn{
+    flex:1; background:none; border:none; display:flex; flex-direction:column; align-items:center;
+    gap:3px; cursor:pointer; color:#B3A793; font-family:'Inter'; font-size:9.5px; font-weight:600;
+  }
+  .nav-btn .ic{font-size:18px;}
+  .nav-btn.on{color:var(--amber-dark);}
+  .fab{
+    width:52px; height:52px; border-radius:50%; background:var(--amber-dark); color:var(--cream);
+    border:none; font-size:24px; display:flex; align-items:center; justify-content:center;
+    margin-top:-26px; box-shadow:0 8px 18px rgba(140,74,31,.4); cursor:pointer;
+  }
+
+  /* sheet */
+  .sheet-overlay{
+    position:absolute; inset:0; background:rgba(42,33,27,.5); z-index:60; display:none;
+    align-items:flex-end;
+  }
+  .sheet-overlay.show{display:flex;}
+  .sheet{
+    background:var(--cream); width:100%; border-radius:22px 22px 0 0; padding:10px 18px 26px;
+  }
+  .sheet-handle{width:38px; height:4px; background:var(--line); border-radius:4px; margin:6px auto 16px;}
+  .sheet-opt{
+    width:100%; display:flex; align-items:center; gap:12px; background:var(--white); border:1px solid var(--line);
+    border-radius:12px; padding:13px; margin-bottom:9px; cursor:pointer; font-family:'Inter';
+  }
+  .sheet-opt .ic{
+    width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px;
+  }
+  .sheet-opt .txt{text-align:left;}
+  .sheet-opt .txt .t1{font-size:12.5px; font-weight:700;}
+  .sheet-opt .txt .t2{font-size:10.5px; color:#8a7c68;}
+
+  ::-webkit-scrollbar{display:none;}
+</style>
+</head>
+<body>
+
+<div class="note">Wireframe interaktif — coba tombol "Admin" / "Crew" di pojok kanan atas untuk lihat perbedaan akses, dan ketuk chip gudang untuk pindah lokasi.</div>
+
+<div class="phone">
+  <div class="notch"></div>
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-row">
+      <div class="brand">Pancong<span>Stok</span></div>
+      <div class="role-toggle">
+        <button id="btnAdmin" class="active" onclick="setRole('admin')">Admin</button>
+        <button id="btnCrew" onclick="setRole('crew')">Crew</button>
+      </div>
+    </div>
+    <div class="gudang-row" id="gudangRow">
+      <button class="gudang-chip on" onclick="setGudang('produksi', this)">🏭 Produksi</button>
+      <button class="gudang-chip" onclick="setGudang('glagahsari', this)">📍 Glagahsari</button>
+      <button class="gudang-chip" onclick="setGudang('ugm', this)">📍 UGM</button>
+    </div>
+  </div>
+
+  <!-- ============ ADMIN: BERANDA ============ -->
+  <div class="screen active" id="s-beranda">
+    <div class="eyebrow" id="berandaGudangLabel">Gudang Produksi</div>
+    <h1 class="page-title">Ringkasan Stok</h1>
+
+    <div class="alert-banner">⚠️ 3 item hampir habis — Baking Powder, Vanili, Kertas Thermal</div>
+
+    <div class="gauge-grid">
+      <div class="gauge-card">
+        <div class="cat-name">Bahan Adonan</div>
+        <div class="pancong" style="--pct:72"></div>
+        <div class="pct-label">72%</div>
+        <div class="item-count">8 SKU aktif</div>
+      </div>
+      <div class="gauge-card">
+        <div class="cat-name">Topping</div>
+        <div class="pancong" style="--pct:54"></div>
+        <div class="pct-label">54%</div>
+        <div class="item-count">20 SKU aktif</div>
+      </div>
+      <div class="gauge-card">
+        <div class="cat-name">Kemasan</div>
+        <div class="pancong" style="--pct:88"></div>
+        <div class="pct-label">88%</div>
+        <div class="item-count">9 SKU aktif</div>
+      </div>
+      <div class="gauge-card">
+        <div class="cat-name">Kebersihan</div>
+        <div class="pancong" style="--pct:31"></div>
+        <div class="pct-label">31%</div>
+        <div class="item-count">4 SKU aktif</div>
+      </div>
+    </div>
+
+    <div class="qa-grid">
+      <button class="qa-btn" onclick="openSheet()">
+        <span class="ic">📥</span>
+        <span class="lbl">Barang Masuk</span>
+        <span class="sub">Catat pembelian baru</span>
+      </button>
+      <button class="qa-btn" onclick="go('s-transfer')">
+        <span class="ic">🔄</span>
+        <span class="lbl">Transfer Gudang</span>
+        <span class="sub">Pindah stok lokasi</span>
+      </button>
+    </div>
+
+    <section class="block">
+      <div class="block-head">
+        <h2>Stok Perlu Perhatian</h2>
+        <span class="see-all" onclick="go('s-stok')">Lihat semua →</span>
+      </div>
+
+      <div class="item-row">
+        <div class="bar-wrap" style="background:var(--alert);">BA</div>
+        <div class="info">
+          <div class="name">Baking Powder</div>
+          <div class="meta"><span class="status-dot" style="background:var(--alert);"></span>Sisa 2 hari pemakaian</div>
+        </div>
+        <div class="qty">3<span class="u">Pack</span></div>
+      </div>
+      <div class="item-row">
+        <div class="bar-wrap" style="background:var(--alert);">BA</div>
+        <div class="info">
+          <div class="name">Vanili</div>
+          <div class="meta"><span class="status-dot" style="background:var(--alert);"></span>Sisa 3 hari pemakaian</div>
+        </div>
+        <div class="qty">45<span class="u">Sachet</span></div>
+      </div>
+      <div class="item-row">
+        <div class="bar-wrap" style="background:#D6A15A;">KM</div>
+        <div class="info">
+          <div class="name">Kertas Thermal</div>
+          <div class="meta"><span class="status-dot" style="background:#D6A15A;"></span>Menipis, belum urgent</div>
+        </div>
+        <div class="qty">120<span class="u">Pcs</span></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ ADMIN: STOK ============ -->
+  <div class="screen" id="s-stok">
+    <div class="eyebrow" id="stokGudangLabel">Gudang Produksi</div>
+    <h1 class="page-title">Daftar Stok</h1>
+
+    <div class="cat-filter">
+      <button class="on">Semua</button>
+      <button>Bahan Adonan</button>
+      <button>Topping</button>
+      <button>Kemasan</button>
+      <button>Kebersihan</button>
+    </div>
+
+    <div class="item-row">
+      <div class="bar-wrap" style="background:var(--teal);">BA</div>
+      <div class="info"><div class="name">Tepung Terigu</div><div class="meta">BA-001 · Bahan Adonan</div></div>
+      <div class="qty">240<span class="u">Kg</span></div>
+    </div>
+    <div class="item-row">
+      <div class="bar-wrap" style="background:var(--teal);">BA</div>
+      <div class="info"><div class="name">Gula Pasir</div><div class="meta">BA-007 · Bahan Adonan</div></div>
+      <div class="qty">58<span class="u">Kg</span></div>
+    </div>
+    <div class="item-row">
+      <div class="bar-wrap" style="background:var(--alert);">BA</div>
+      <div class="info"><div class="name">Baking Powder</div><div class="meta">BA-004 · Bahan Adonan</div></div>
+      <div class="qty">3<span class="u">Pack</span></div>
+    </div>
+    <div class="item-row">
+      <div class="bar-wrap" style="background:var(--amber);">TP</div>
+      <div class="info"><div class="name">Glaze Cokelat</div><div class="meta">G-003 · Topping</div></div>
+      <div class="qty">14<span class="u">Ember</span></div>
+    </div>
+    <div class="item-row">
+      <div class="bar-wrap" style="background:var(--amber);">TP</div>
+      <div class="info"><div class="name">GF Choco Crunchy</div><div class="meta">S-001 · Topping</div></div>
+      <div class="qty">6<span class="u">Ember</span></div>
+    </div>
+    <div class="item-row">
+      <div class="bar-wrap" style="background:#D6A15A;">KM</div>
+      <div class="info"><div class="name">Paper Box (Grosir)</div><div class="meta">K-001 · Kemasan</div></div>
+      <div class="qty">3200<span class="u">Pcs</span></div>
+    </div>
+    <div class="item-row">
+      <div class="bar-wrap" style="background:#9C8F7A;">KB</div>
+      <div class="info"><div class="name">Sabun Cuci Piring</div><div class="meta">C-005 · Kebersihan</div></div>
+      <div class="qty">2<span class="u">Pack</span></div>
+    </div>
+  </div>
+
+  <!-- ============ ADMIN: TRANSFER ============ -->
+  <div class="screen" id="s-transfer">
+    <div class="eyebrow">Khusus Admin</div>
+    <h1 class="page-title">Transfer Antar Gudang</h1>
+
+    <div class="field">
+      <label>Item</label>
+      <select><option>Glaze Cokelat (G-003)</option><option>Tepung Terigu (BA-001)</option><option>Paper Box Satuan (K-008)</option></select>
+    </div>
+
+    <div class="transfer-arrow">
+      <div class="transfer-box"><div class="lbl">DARI</div><div class="val">🏭 Produksi</div></div>
+      <div style="color:var(--amber-dark); font-size:16px;">→</div>
+      <div class="transfer-box"><div class="lbl">KE</div><div class="val">📍 Glagahsari</div></div>
+    </div>
+
+    <div class="field">
+      <label>Jumlah</label>
+      <div class="stepper">
+        <button>−</button>
+        <div class="val">10</div>
+        <button>+</button>
+        <span style="font-size:12px; color:#8a7c68;">Ember</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Foto Bukti (opsional)</label>
+      <input type="text" placeholder="📷 Ambil / unggah foto" readonly>
+    </div>
+
+    <div class="field">
+      <label>Catatan</label>
+      <textarea placeholder="Contoh: stok Glagahsari menipis untuk weekend"></textarea>
+    </div>
+
+    <button class="primary-btn">Kirim Transfer</button>
+
+    <section class="block" style="margin-top:22px;">
+      <div class="block-head"><h2>Menunggu Konfirmasi</h2></div>
+      <div class="pending-card">
+        <div class="top">
+          <div class="route">🏭 Produksi → 📍 UGM</div>
+          <div class="when">2 jam lalu</div>
+        </div>
+        <div style="font-size:12px;">Susu UHT · 8 Liter</div>
+        <button class="confirm">✓ Konfirmasi Barang Diterima</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ ADMIN: RIWAYAT ============ -->
+  <div class="screen" id="s-riwayat">
+    <div class="eyebrow">Semua Gudang</div>
+    <h1 class="page-title">Riwayat Transaksi</h1>
+
+    <div class="cat-filter">
+      <button class="on">Semua</button>
+      <button>Masuk</button>
+      <button>Crew</button>
+      <button>Transfer</button>
+      <button>Produksi</button>
+    </div>
+
+    <div class="log-item" onclick="openTxDetail(this)" style="cursor:pointer;">
+      <div class="log-dot" style="background:var(--teal-bg); color:var(--teal);">📥</div>
+      <div class="log-body">
+        <div class="log-title">Barang Masuk — Tepung Terigu</div>
+        <div class="log-sub">Gudang Produksi · Pancasari · Hari ini, 09.12</div>
+      </div>
+      <div class="log-qty" style="color:var(--teal);">+400 Kg</div>
+    </div>
+    <div class="log-item" id="log-crew-1" onclick="openTxDetail(this)" style="cursor:pointer;"
+         data-title="Diambil Crew — Glaze Cokelat" data-sub="Gudang UGM · Shift B · Hari ini, 16.40" data-qty="−3 Ember" data-type="crew">
+      <div class="log-dot" style="background:var(--ugm-bg); color:var(--ugm);">🙋</div>
+      <div class="log-body">
+        <div class="log-title">Diambil Crew — Glaze Cokelat</div>
+        <div class="log-sub">Gudang UGM · Shift B · Hari ini, 16.40</div>
+      </div>
+      <div class="log-qty" style="color:var(--alert);">−3 Ember</div>
+    </div>
+    <div class="log-item">
+      <div class="log-dot" style="background:#FCEFD9; color:var(--amber-dark);">🔄</div>
+      <div class="log-body">
+        <div class="log-title">Transfer — Susu UHT</div>
+        <div class="log-sub">Produksi → UGM · Menunggu diterima</div>
+      </div>
+      <div class="log-qty">8 Liter</div>
+    </div>
+    <div class="log-item">
+      <div class="log-dot" style="background:var(--glagahsari-bg); color:var(--glagahsari);">🍳</div>
+      <div class="log-body">
+        <div class="log-title">Pemakaian Produksi — 3 Batch Adonan</div>
+        <div class="log-sub">Gudang Produksi · Kemarin, 08.05</div>
+      </div>
+      <div class="log-qty" style="color:var(--alert);">−12 Kg</div>
+    </div>
+    <div class="log-item">
+      <div class="log-dot" style="background:var(--teal-bg); color:var(--teal);">📥</div>
+      <div class="log-body">
+        <div class="log-title">Barang Masuk — Paper Box</div>
+        <div class="log-sub">Gudang Glagahsari · Kemarin, 14.20</div>
+      </div>
+      <div class="log-qty" style="color:var(--teal);">+7000 Pcs</div>
+    </div>
+  </div>
+
+  <!-- ============ CREW: AMBIL BARANG (simplified) ============ -->
+  <div class="screen" id="s-crew">
+    <div class="crew-wrap">
+      <div class="crew-hello">Halo, Shift B 👋</div>
+      <div class="crew-sub">Gudang UGM · Ketuk item yang diambil</div>
+      <input class="crew-search" id="crewSearchInput" placeholder="🔍 Cari item..." oninput="filterCrewItems(this.value)">
+      <div style="font-size:10.5px; color:#8a7c68; margin:-6px 0 12px;">Ketuk item untuk pilih, bisa lebih dari satu sebelum kirim</div>
+      <div id="crewNoResult" style="display:none; text-align:center; padding:24px 0; font-size:12px; color:#8a7c68;">Item tidak ditemukan. Coba kata kunci lain.</div>
+
+      <div id="crewItemList">
+      <div class="crew-item-btn" onclick="toggleCrewItem(this,'Glaze Cokelat','Ember')">
+        <div><div class="name">Glaze Cokelat</div><div class="unit">Pail / Ember</div></div>
+        <div class="right"><div class="chev">Pilih ›</div></div>
+      </div>
+      <div class="crew-item-btn" onclick="toggleCrewItem(this,'GF Choco Crunchy','Ember')">
+        <div><div class="name">GF Choco Crunchy</div><div class="unit">Pail / Ember</div></div>
+        <div class="right"><div class="chev">Pilih ›</div></div>
+      </div>
+      <div class="crew-item-btn" onclick="toggleCrewItem(this,'Meses','Karton')">
+        <div><div class="name">Meses</div><div class="unit">Karton / Bal</div></div>
+        <div class="right"><div class="chev">Pilih ›</div></div>
+      </div>
+      <div class="crew-item-btn" onclick="toggleCrewItem(this,'Paper Box (Satuan)','Pcs')">
+        <div><div class="name">Paper Box (Satuan)</div><div class="unit">Pcs</div></div>
+        <div class="right"><div class="chev">Pilih ›</div></div>
+      </div>
+      <div class="crew-item-btn" onclick="toggleCrewItem(this,'Kresek Bening','Pack')">
+        <div><div class="name">Kresek Bening</div><div class="unit">Pack</div></div>
+        <div class="right"><div class="chev">Pilih ›</div></div>
+      </div>
+      <div class="crew-item-btn" onclick="toggleCrewItem(this,'Sendok Teh','Dus')">
+        <div><div class="name">Sendok Teh</div><div class="unit">Dus / Karton</div></div>
+        <div class="right"><div class="chev">Pilih ›</div></div>
+      </div>
+      </div>
+
+      <div style="margin-top:18px; padding:12px; background:var(--white); border:1px dashed var(--line); border-radius:12px; font-size:11px; color:#8a7c68;">
+        ℹ️ Tampilan Crew sengaja disederhanakan — hanya bisa mencatat "barang diambil" di gudang tempat bertugas. Tidak bisa lihat stok gudang lain atau data keuangan.
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ CREW: REVIEW SEBELUM KIRIM ============ -->
+  <div class="screen" id="s-crew-review">
+    <div class="crew-wrap">
+      <div class="crew-hello">Konfirmasi Pengambilan</div>
+      <div class="crew-sub">Diambil dari Gudang UGM · Hari ini, sekarang</div>
+
+      <div class="field">
+        <label>Nama Anda <span style="color:var(--alert);">*</span></label>
+        <input type="text" id="crewNameInput" placeholder="Tulis nama lengkap" oninput="validateCrewSubmit()">
+      </div>
+
+      <div class="field">
+        <label>Outlet Tujuan <span style="color:var(--alert);">*</span></label>
+        <select id="outletTujuanInput" onchange="validateCrewSubmit()">
+          <option value="">Pilih outlet tujuan...</option>
+          <option>Glagahsari</option>
+          <option>UGM</option>
+          <option>UMY</option>
+          <option>UAD</option>
+          <option>Jakal</option>
+          <option>Pogung</option>
+        </select>
+        <div style="font-size:10.5px; color:#8a7c68; margin-top:6px;">Boleh beda dari gudang asal — misal ambil di sini, dipakai di outlet lain.</div>
+      </div>
+
+      <div class="review-list" id="reviewList"></div>
+
+      <button class="primary-btn" id="crewSubmitBtn" onclick="submitCrewCart()" disabled style="opacity:.4; cursor:not-allowed;">Kirim ke Sistem</button>
+      <div id="crewValidationMsg" style="display:none; font-size:11px; color:var(--alert); text-align:center; margin-top:8px; font-weight:600;">Isi nama dan pilih outlet tujuan dulu ya</div>
+      <button class="ghost-btn" onclick="go('s-crew')">← Tambah item lain</button>
+    </div>
+  </div>
+
+  <!-- ============ CREW: SUKSES ============ -->
+  <div class="screen" id="s-crew-done">
+    <div class="crew-wrap" style="text-align:center; padding-top:50px;">
+      <div style="font-size:48px; margin-bottom:14px;">✅</div>
+      <div class="crew-hello" style="text-align:center;">Tercatat!</div>
+      <div class="crew-sub" style="text-align:center;">Pengambilan barang sudah masuk ke sistem.</div>
+      <div style="background:var(--white); border:1px solid var(--line); border-radius:12px; padding:14px; margin:16px 0; text-align:left;">
+        <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:6px;"><span style="color:#8a7c68;">Diambil oleh</span><b id="doneWho">—</b></div>
+        <div style="display:flex; justify-content:space-between; font-size:12px;"><span style="color:#8a7c68;">Outlet tujuan</span><b id="doneOutlet">—</b></div>
+      </div>
+      <button class="primary-btn" onclick="resetCrewCart(); go('s-crew');">Ambil Barang Lagi</button>
+    </div>
+  </div>
+
+  <!-- CREW FLOATING CART BAR -->
+  <div class="crew-cart-bar" id="crewCartBar">
+    <div class="txt"><b id="cartCount">0</b> item dipilih</div>
+    <button onclick="reviewCrewCart()">Lanjut Kirim →</button>
+  </div>
+
+  <!-- BOTTOM NAV — ADMIN -->
+  <div class="bottomnav" id="navAdmin">
+    <button class="nav-btn on" onclick="go('s-beranda', this)"><span class="ic">🏠</span>Beranda</button>
+    <button class="nav-btn" onclick="go('s-stok', this)"><span class="ic">📦</span>Stok</button>
+    <button class="fab" onclick="openSheet()">+</button>
+    <button class="nav-btn" onclick="go('s-transfer', this)"><span class="ic">🔄</span>Transfer</button>
+    <button class="nav-btn" onclick="go('s-riwayat', this)"><span class="ic">🕘</span>Riwayat</button>
+  </div>
+
+  <!-- BOTTOM NAV — CREW -->
+  <div class="bottomnav" id="navCrew" style="display:none; justify-content:center;">
+    <div style="text-align:center; font-size:10.5px; color:#B3A793; font-weight:600;">Akses Crew: hanya form "Ambil Barang" di gudang bertugas</div>
+  </div>
+
+  <!-- TRANSAKSI DETAIL SHEET -->
+  <div class="sheet-overlay" id="txDetailOverlay" onclick="if(event.target===this) closeTxDetail()">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div id="txDetailStep1">
+        <div style="font-family:'Fraunces',serif; font-size:16px; font-weight:600; margin-bottom:4px;" id="txTitle"></div>
+        <div style="font-size:11.5px; color:#8a7c68; margin-bottom:14px;" id="txSub"></div>
+        <div style="background:var(--white); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:11.5px; color:#8a7c68; font-weight:600;">Jumlah</span>
+          <span style="font-family:'IBM Plex Mono'; font-weight:700; font-size:15px;" id="txQty"></span>
+        </div>
+        <div id="txAdminActions">
+          <button class="primary-btn" style="background:var(--alert);" onclick="showCorrectionForm()">Koreksi / Batalkan Transaksi</button>
+          <button class="ghost-btn" onclick="closeTxDetail()">Tutup</button>
+        </div>
+        <div id="txCrewNote" style="display:none; font-size:11px; color:#8a7c68; background:var(--white); border:1px dashed var(--line); border-radius:10px; padding:10px; margin-top:4px;">
+          ℹ️ Hanya Admin yang bisa mengoreksi atau membatalkan transaksi.
+        </div>
+      </div>
+
+      <div id="txDetailStep2" style="display:none;">
+        <div style="font-family:'Fraunces',serif; font-size:16px; font-weight:600; margin-bottom:10px;">Alasan Koreksi</div>
+        <div class="field">
+          <label>Kenapa transaksi ini dibatalkan/dikoreksi?</label>
+          <textarea id="corrReason" placeholder="Contoh: crew salah pilih item, seharusnya Glaze Tiramisu bukan Glaze Cokelat"></textarea>
+        </div>
+        <div style="font-size:11px; color:#8a7c68; margin-bottom:14px;">
+          Sistem akan membuat <b>entri pembalik</b> untuk mengembalikan stok — transaksi asli tetap tersimpan dengan label "Dikoreksi" untuk jejak audit.
+        </div>
+        <button class="primary-btn" onclick="confirmCorrection()">Konfirmasi Koreksi</button>
+        <button class="ghost-btn" onclick="document.getElementById('txDetailStep1').style.display='block'; document.getElementById('txDetailStep2').style.display='none';">← Kembali</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM SHEET -->
+  <div class="sheet-overlay" id="sheetOverlay" onclick="if(event.target===this) closeSheet()">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-opt" onclick="closeSheet()">
+        <div class="ic" style="background:var(--teal-bg); color:var(--teal);">📥</div>
+        <div class="txt"><div class="t1">Barang Masuk</div><div class="t2">Catat pembelian dari supplier</div></div>
+      </div>
+      <div class="sheet-opt" onclick="closeSheet()">
+        <div class="ic" style="background:var(--glagahsari-bg); color:var(--glagahsari);">🍳</div>
+        <div class="txt"><div class="t1">Pemakaian Produksi</div><div class="t2">Catat bahan terpakai per batch</div></div>
+      </div>
+      <div class="sheet-opt" onclick="closeSheet(); go('s-transfer');">
+        <div class="ic" style="background:#FCEFD9; color:var(--amber-dark);">🔄</div>
+        <div class="txt"><div class="t1">Transfer Gudang</div><div class="t2">Pindahkan stok antar lokasi</div></div>
+      </div>
+      <div class="sheet-opt" onclick="closeSheet(); go('s-opname-lokasi');">
+        <div class="ic" style="background:var(--ugm-bg); color:var(--ugm);">📋</div>
+        <div class="txt"><div class="t1">Stok Opname</div><div class="t2">Cocokkan stok sistem vs fisik</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ ADMIN: OPNAME — PILIH LOKASI ============ -->
+  <div class="screen" id="s-opname-lokasi">
+    <div class="eyebrow">Akhir Bulan · Agustus 2026</div>
+    <h1 class="page-title">Stok Opname</h1>
+    <div style="font-size:11.5px; color:#8a7c68; margin:-8px 0 16px;">Cek 3 gudang dan semua outlet — untuk pastikan tidak ada barang hilang dan siapkan data forecast pembelian bulan depan.</div>
+
+    <div class="block-head"><h2>Gudang</h2></div>
+    <div class="opname-loc-card" onclick="openOpname('Gudang Produksi','gudang')">
+      <div class="oln">🏭 Gudang Produksi</div>
+      <div class="olstatus todo">Belum Opname</div>
+    </div>
+    <div class="opname-loc-card" onclick="openOpname('Gudang Glagahsari','gudang')">
+      <div class="oln">📍 Gudang Glagahsari</div>
+      <div class="olstatus todo">Belum Opname</div>
+    </div>
+    <div class="opname-loc-card" onclick="openOpname('Gudang UGM','gudang')">
+      <div class="oln">📍 Gudang UGM</div>
+      <div class="olstatus done">✓ Selesai</div>
+    </div>
+
+    <div class="block-head" style="margin-top:18px;"><h2>Outlet</h2></div>
+    <div style="font-size:10.5px; color:#8a7c68; margin:-4px 0 10px;">Dicek terhadap barang yang diambil dari gudang asalnya masing-masing</div>
+    <div class="opname-loc-card" onclick="openOpname('Outlet UMY','outlet')">
+      <div class="oln">🏪 Outlet UMY <span class="tag glagahsari" style="margin-left:4px;">dari Glagahsari</span></div>
+      <div class="olstatus todo">Belum Opname</div>
+    </div>
+    <div class="opname-loc-card" onclick="openOpname('Outlet UAD','outlet')">
+      <div class="oln">🏪 Outlet UAD <span class="tag produksi" style="margin-left:4px;">dari Produksi</span></div>
+      <div class="olstatus todo">Belum Opname</div>
+    </div>
+    <div class="opname-loc-card" onclick="openOpname('Outlet Jakal','outlet')">
+      <div class="oln">🏪 Outlet Jakal <span class="tag ugm" style="margin-left:4px;">dari UGM</span></div>
+      <div class="olstatus todo">Belum Opname</div>
+    </div>
+    <div class="opname-loc-card" onclick="openOpname('Outlet Pogung','outlet')">
+      <div class="oln">🏪 Outlet Pogung <span class="tag ugm" style="margin-left:4px;">dari UGM</span></div>
+      <div class="olstatus todo">Belum Opname</div>
+    </div>
+
+    <button class="primary-btn" style="margin-top:20px;" onclick="go('s-opname-rekap')">Lihat Rekap Keseluruhan →</button>
+  </div>
+
+  <!-- ============ ADMIN: OPNAME — INPUT ============ -->
+  <div class="screen" id="s-opname-input">
+    <div class="eyebrow" id="opnameLocLabel">Gudang Produksi</div>
+    <h1 class="page-title">Input Fisik</h1>
+
+    <div id="opnameGudangCols" class="opname-row header">
+      <div class="oc-name">Item</div>
+      <div class="oc-num">Sistem</div>
+      <div class="oc-num">Fisik</div>
+      <div class="oc-num">Selisih</div>
+    </div>
+    <div id="opnameList"></div>
+
+    <div class="opname-summary-bar" id="opnameSummaryBar">
+      <div><span id="opnameChecked">0</span>/<span id="opnameTotal">0</span> item dicek</div>
+      <div id="opnameIssues" style="color:var(--alert); font-weight:700;">0 selisih</div>
+    </div>
+    <button class="primary-btn" onclick="finishOpname()">Selesai Opname Lokasi Ini</button>
+    <button class="ghost-btn" onclick="go('s-opname-lokasi')">← Kembali ke Daftar Lokasi</button>
+  </div>
+
+  <!-- ============ ADMIN: OPNAME — REKAP & EXPORT ============ -->
+  <div class="screen" id="s-opname-rekap">
+    <div class="eyebrow">Akhir Bulan · Agustus 2026</div>
+    <h1 class="page-title">Rekap SO Keseluruhan</h1>
+
+    <div class="gauge-grid" style="grid-template-columns:1fr 1fr 1fr; gap:8px;">
+      <div class="gauge-card" style="text-align:center; padding:12px 8px;">
+        <div class="cat-name" style="margin-bottom:4px;">Lokasi Selesai</div>
+        <div style="font-family:'IBM Plex Mono'; font-size:20px; font-weight:700;">2/7</div>
+      </div>
+      <div class="gauge-card" style="text-align:center; padding:12px 8px;">
+        <div class="cat-name" style="margin-bottom:4px;">Total Selisih</div>
+        <div style="font-family:'IBM Plex Mono'; font-size:20px; font-weight:700; color:var(--alert);">5 item</div>
+      </div>
+      <div class="gauge-card" style="text-align:center; padding:12px 8px;">
+        <div class="cat-name" style="margin-bottom:4px;">Nilai Selisih</div>
+        <div style="font-family:'IBM Plex Mono'; font-size:15px; font-weight:700; color:var(--alert);">Rp 187rb</div>
+      </div>
+    </div>
+
+    <section class="block">
+      <div class="block-head"><h2>Item Perlu Dicek</h2></div>
+      <div class="item-row">
+        <div class="bar-wrap" style="background:var(--alert);">BA</div>
+        <div class="info"><div class="name">Baking Powder</div><div class="meta">Gudang UGM · Sistem 8, Fisik 5</div></div>
+        <div class="qty" style="color:var(--alert);">−3<span class="u">Pack</span></div>
+      </div>
+      <div class="item-row">
+        <div class="bar-wrap" style="background:var(--alert);">TP</div>
+        <div class="info"><div class="name">Glaze Tiramisu</div><div class="meta">Outlet UMY · Diterima 24, Fisik 15</div></div>
+        <div class="qty" style="color:var(--alert);">−9<span class="u">Ember</span></div>
+      </div>
+    </section>
+
+    <div style="background:var(--white); border:1px dashed var(--amber); border-radius:14px; padding:16px; margin-top:8px;">
+      <div style="font-family:'Fraunces',serif; font-weight:600; font-size:14.5px; margin-bottom:6px;">📊 Export untuk Forecast</div>
+      <div style="font-size:11.5px; color:#8a7c68; margin-bottom:12px;">Rekap seluruh gudang & outlet bulan ini — dipakai sebagai dasar hitung kebutuhan pembelian bahan bulan depan.</div>
+      <button class="primary-btn" style="margin-top:0;">⬇ Export Rekap SO (Excel)</button>
+    </div>
+  </div>
+
+
+</div>
+
+<script>
+  let role = 'admin';
+
+  function setRole(r){
+    role = r;
+    document.getElementById('btnAdmin').classList.toggle('active', r==='admin');
+    document.getElementById('btnCrew').classList.toggle('active', r==='crew');
+    document.getElementById('navAdmin').style.display = r==='admin' ? 'flex' : 'none';
+    document.getElementById('navCrew').style.display = r==='crew' ? 'flex' : 'none';
+    document.getElementById('gudangRow').style.opacity = r==='crew' ? '.55' : '1';
+
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    if(r==='admin'){
+      document.getElementById('s-beranda').classList.add('active');
+      document.querySelectorAll('#navAdmin .nav-btn').forEach(b=>b.classList.remove('on'));
+      document.querySelector('#navAdmin .nav-btn').classList.add('on');
+    } else {
+      document.getElementById('s-crew').classList.add('active');
+    }
+  }
+
+  function go(id, btn){
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelectorAll('#navAdmin .nav-btn').forEach(b=>b.classList.remove('on'));
+    if(btn) btn.classList.add('on');
+  }
+
+  const gudangLabels = {
+    produksi: 'Gudang Produksi',
+    glagahsari: 'Gudang Glagahsari',
+    ugm: 'Gudang UGM'
+  };
+  function setGudang(g, btn){
+    document.querySelectorAll('.gudang-chip').forEach(c=>c.classList.remove('on'));
+    btn.classList.add('on');
+    document.getElementById('berandaGudangLabel').textContent = gudangLabels[g];
+    document.getElementById('stokGudangLabel').textContent = gudangLabels[g];
+  }
+
+  function openSheet(){ document.getElementById('sheetOverlay').classList.add('show'); }
+  function closeSheet(){ document.getElementById('sheetOverlay').classList.remove('show'); }
+
+  // ===== Transaksi detail & koreksi (Admin) =====
+  let activeTxEl = null;
+
+  function openTxDetail(el){
+    activeTxEl = el;
+    document.getElementById('txTitle').textContent = el.dataset.title || el.querySelector('.log-title').textContent;
+    document.getElementById('txSub').textContent = el.dataset.sub || el.querySelector('.log-sub').textContent;
+    document.getElementById('txQty').textContent = el.dataset.qty || el.querySelector('.log-qty').textContent;
+    document.getElementById('txDetailStep1').style.display = 'block';
+    document.getElementById('txDetailStep2').style.display = 'none';
+    document.getElementById('txAdminActions').style.display = (role === 'admin') ? 'block' : 'none';
+    document.getElementById('txCrewNote').style.display = (role === 'admin') ? 'none' : 'block';
+    document.getElementById('corrReason').value = '';
+    document.getElementById('txDetailOverlay').classList.add('show');
+  }
+  function closeTxDetail(){ document.getElementById('txDetailOverlay').classList.remove('show'); }
+
+  function showCorrectionForm(){
+    document.getElementById('txDetailStep1').style.display = 'none';
+    document.getElementById('txDetailStep2').style.display = 'block';
+  }
+
+  function confirmCorrection(){
+    if(!activeTxEl) return;
+    // mark original as corrected
+    activeTxEl.style.opacity = '.55';
+    const title = activeTxEl.querySelector('.log-title');
+    if(!title.querySelector('.tag')){
+      title.innerHTML += ' <span class="tag" style="background:var(--alert-bg); color:var(--alert); margin-left:4px;">Dikoreksi</span>';
+    }
+    // insert reversal entry right after
+    const reversal = document.createElement('div');
+    reversal.className = 'log-item';
+    reversal.innerHTML = `
+      <div class="log-dot" style="background:var(--alert-bg); color:var(--alert);">↩️</div>
+      <div class="log-body">
+        <div class="log-title">Koreksi — ${activeTxEl.dataset.title || activeTxEl.querySelector('.log-title').textContent}</div>
+        <div class="log-sub">Oleh Admin · Baru saja · Stok dikembalikan</div>
+      </div>
+      <div class="log-qty" style="color:var(--teal);">Reversal</div>`;
+    activeTxEl.after(reversal);
+    closeTxDetail();
+  }
+
+  // ===== Stok Opname =====
+  const opnameDataGudang = [
+    {name:'Tepung Terigu', sistem:240, unit:'Kg'},
+    {name:'Gula Pasir', sistem:58, unit:'Kg'},
+    {name:'Baking Powder', sistem:8, unit:'Pack'},
+    {name:'Glaze Cokelat', sistem:14, unit:'Ember'},
+    {name:'Paper Box (Grosir)', sistem:3200, unit:'Pcs'},
+  ];
+  const opnameDataOutlet = [
+    {name:'Glaze Tiramisu', sistem:24, unit:'Ember'},
+    {name:'GF Choco Crunchy', sistem:12, unit:'Ember'},
+    {name:'Meses', sistem:3, unit:'Karton'},
+    {name:'Kresek Bening', sistem:20, unit:'Pack'},
+  ];
+
+  function openOpname(locName, type){
+    document.getElementById('opnameLocLabel').textContent = locName;
+    const isOutlet = type === 'outlet';
+    document.querySelectorAll('#opnameGudangCols .oc-name')[0].textContent = 'Item';
+    document.querySelectorAll('#opnameGudangCols .oc-num')[0].textContent = isOutlet ? 'Diterima' : 'Sistem';
+
+    const data = isOutlet ? opnameDataOutlet : opnameDataGudang;
+    const list = document.getElementById('opnameList');
+    list.innerHTML = data.map((it, i) => `
+      <div class="opname-row" data-sistem="${it.sistem}">
+        <div class="oc-name">${it.name}<div style="font-size:9.5px; color:#8a7c68; font-weight:400;">${it.unit}</div></div>
+        <div class="oc-num">${it.sistem}</div>
+        <div class="oc-num"><input type="number" class="oc-input" placeholder="—" oninput="calcOpnameDiff(this, ${i})"></div>
+        <div class="oc-num oc-diff" id="diff-${i}">—</div>
+      </div>`).join('');
+
+    document.getElementById('opnameTotal').textContent = data.length;
+    document.getElementById('opnameChecked').textContent = '0';
+    document.getElementById('opnameIssues').textContent = '0 selisih';
+
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById('s-opname-input').classList.add('active');
+  }
+
+  function calcOpnameDiff(input, idx){
+    const row = input.closest('.opname-row');
+    const sistem = parseFloat(row.dataset.sistem);
+    const fisik = parseFloat(input.value);
+    const diffEl = document.getElementById('diff-'+idx);
+    if(isNaN(fisik)){ diffEl.textContent = '—'; diffEl.className = 'oc-num oc-diff'; }
+    else {
+      const diff = fisik - sistem;
+      diffEl.textContent = (diff>0?'+':'') + diff;
+      diffEl.className = 'oc-num oc-diff ' + (diff===0 ? 'zero' : (diff<0 ? 'neg' : 'pos'));
+    }
+    // update summary counts
+    const rows = document.querySelectorAll('#opnameList .opname-row');
+    let checked = 0, issues = 0;
+    rows.forEach((r,i)=>{
+      const inp = r.querySelector('.oc-input');
+      if(inp.value !== ''){
+        checked++;
+        const d = parseFloat(inp.value) - parseFloat(r.dataset.sistem);
+        if(d !== 0) issues++;
+      }
+    });
+    document.getElementById('opnameChecked').textContent = checked;
+    document.getElementById('opnameIssues').textContent = issues + ' selisih';
+  }
+
+  function finishOpname(){
+    go('s-opname-lokasi');
+  }
+
+  // ===== Crew multi-item cart =====
+  let crewCart = {}; // name -> {unit, qty}
+
+  function toggleCrewItem(el, name, unit){
+    if(crewCart[name]){
+      // already picked -> tapping the row body again does nothing, steppers handle qty
+      return;
+    }
+    crewCart[name] = {unit, qty:1};
+    el.classList.add('picked');
+    const right = el.querySelector('.right');
+    right.innerHTML = `
+      <div class="mini-stepper">
+        <button onclick="event.stopPropagation(); changeQty('${name}', -1, this)">−</button>
+        <div class="val" id="qty-${cssSafe(name)}">1</div>
+        <button onclick="event.stopPropagation(); changeQty('${name}', 1, this)">+</button>
+        <button onclick="event.stopPropagation(); removeCrewItem('${name}', this)" style="color:var(--alert); border-color:#E8B7A8; margin-left:2px;">✕</button>
+      </div>`;
+    updateCartBar();
+  }
+
+  function changeQty(name, delta){
+    if(!crewCart[name]) return;
+    crewCart[name].qty = Math.max(1, crewCart[name].qty + delta);
+    document.getElementById('qty-'+cssSafe(name)).textContent = crewCart[name].qty;
+  }
+
+  function removeCrewItem(name, btn){
+    delete crewCart[name];
+    const row = btn.closest('.crew-item-btn');
+    row.classList.remove('picked');
+    row.querySelector('.right').innerHTML = '<div class="chev">Pilih ›</div>';
+    updateCartBar();
+  }
+
+  function updateCartBar(){
+    const count = Object.keys(crewCart).length;
+    document.getElementById('cartCount').textContent = count;
+    document.getElementById('crewCartBar').classList.toggle('show', count > 0);
+  }
+
+  function cssSafe(s){ return s.replace(/[^a-z0-9]/gi,''); }
+
+  // Live search — filters as you type, no button/submit needed
+  function filterCrewItems(query){
+    const q = query.trim().toLowerCase();
+    const rows = document.querySelectorAll('#crewItemList .crew-item-btn');
+    let visibleCount = 0;
+    rows.forEach(row=>{
+      const name = row.querySelector('.name').textContent.toLowerCase();
+      const matches = name.includes(q);
+      row.style.display = matches ? 'flex' : 'none';
+      if(matches) visibleCount++;
+    });
+    document.getElementById('crewNoResult').style.display = (visibleCount===0) ? 'block' : 'none';
+  }
+
+  function reviewCrewCart(){
+    const list = document.getElementById('reviewList');
+    list.innerHTML = Object.entries(crewCart).map(([name, v]) => `
+      <div class="review-row">
+        <div class="rn">${name}</div>
+        <div class="rq">${v.qty} ${v.unit}</div>
+      </div>`).join('');
+    document.getElementById('crewNameInput').value = '';
+    document.getElementById('outletTujuanInput').value = '';
+    validateCrewSubmit();
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById('s-crew-review').classList.add('active');
+  }
+
+  function validateCrewSubmit(){
+    const name = document.getElementById('crewNameInput').value.trim();
+    const outlet = document.getElementById('outletTujuanInput').value;
+    const btn = document.getElementById('crewSubmitBtn');
+    const ok = name.length > 0 && outlet.length > 0;
+    btn.disabled = !ok;
+    btn.style.opacity = ok ? '1' : '.4';
+    btn.style.cursor = ok ? 'pointer' : 'not-allowed';
+    document.getElementById('crewValidationMsg').style.display = 'none';
+  }
+
+  function submitCrewCart(){
+    const name = document.getElementById('crewNameInput').value.trim();
+    const outlet = document.getElementById('outletTujuanInput').value;
+    if(!name || !outlet){
+      document.getElementById('crewValidationMsg').style.display = 'block';
+      return;
+    }
+    document.getElementById('doneWho').textContent = name;
+    document.getElementById('doneOutlet').textContent = outlet;
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById('s-crew-done').classList.add('active');
+  }
+
+  function resetCrewCart(){
+    crewCart = {};
+    updateCartBar();
+    document.querySelectorAll('#s-crew .crew-item-btn').forEach(row=>{
+      row.classList.remove('picked');
+      row.querySelector('.right').innerHTML = '<div class="chev">Pilih ›</div>';
+    });
+  }
+</script>
+</body>
+</html>
