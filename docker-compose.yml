@@ -1,0 +1,52 @@
+# docker-compose.yml — Inventori Pancong Jaksel
+#
+# SENGAJA gak ada service postgres di sini — Rint udah punya Postgres
+# container jalan dari project IMS (pancong-jaksel-ims-postgres-1), dan
+# database `pancong_inventori` dibuat di instance yang sama (lihat histori
+# setup). Jadi compose ini cuma orkestrasi API + Frontend, keduanya connect
+# ke Postgres yang udah ada lewat `host.docker.internal` (DNS khusus Docker
+# Desktop yang nunjuk ke Mac Mini itu sendiri, dari dalam container).
+#
+# Kalau nanti pindah ke server tanpa Docker Desktop (mis. VPS Linux),
+# host.docker.internal gak otomatis kebaca — perlu tambah:
+#   extra_hosts: ["host.docker.internal:host-gateway"]
+# (baris ini udah disiapin di bawah, di-uncomment kalau perlu)
+
+services:
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: pancong-inventori-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./api/.env
+    volumes:
+      - ./api/uploads:/app/uploads # foto bukti persisten, gak ilang tiap docker compose up --build
+    environment:
+      # Override PGHOST spesifik buat konteks Docker — walau .env kamu isi
+      # 'localhost', dari DALAM container 'localhost' itu nunjuk ke
+      # container itu sendiri, BUKAN ke Mac Mini. Baris ini pastiin API
+      # selalu connect ke host yang bener, apa pun isi .env.
+      PGHOST: host.docker.internal
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"  # uncomment kalau bukan Docker Desktop (mis. Linux VPS)
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Alamat API dari sudut pandang BROWSER (bukan dari dalam container
+        # lain) — karena ini diakses HP/laptop di jaringan yang sama, bukan
+        # antar-container. Ganti sesuai IP Mac Mini kalau mau diakses dari
+        # HP (lihat catatan di README soal akses LAN).
+        VITE_API_BASE_URL: http://localhost:3000/api
+    container_name: pancong-inventori-frontend
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      - api

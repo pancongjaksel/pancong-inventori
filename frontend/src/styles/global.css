@@ -1,0 +1,218 @@
+/*
+  Design tokens — Inventori Pancong Jaksel
+
+  Ini aplikasi KERJA, bukan situs promosi: dipegang crew pas shift, kadang
+  sinyal lemah, kadang tangan belepotan adonan. Prioritas: kontras tinggi
+  (kebaca di gudang yang pencahayaannya seadanya), target sentuh besar
+  (gampang dipencet jempol sambil buru-buru), dan nol ketergantungan ke
+  internet buat font (font sistem aja, biar tetep kebuka pas sinyal jelek).
+
+  Warna diambil dari dunia kue pancong: arang panggangan (background gelap),
+  krim kelapa (background terang), karamel gula jawa (aksen utama — BUKAN
+  terracotta #D97757 yang udah generik dipakai AI, ini lebih ke arah amber
+  gelap/karamel yang gosong dikit, khas gula jawa dibakar).
+*/
+
+:root {
+  /* Warna */
+  --warna-arang: #2B2320; /* teks utama, elemen gelap */
+  --warna-krim: #FAF6EE; /* background terang */
+  --warna-krim-redup: #F0E9DA; /* background sekunder/kartu */
+  --warna-karamel: #B8722E; /* aksen utama — tombol primer, highlight */
+  --warna-karamel-gelap: #8F5620; /* hover/active state karamel */
+  --warna-sukses: #3F7D58;
+  --warna-bahaya: #B23A34;
+  --warna-abu: #8A8178; /* teks sekunder */
+  --warna-garis: #E2D9C8;
+
+  /* Tipografi — font sistem, nol dependency jaringan */
+  --font-tubuh: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-angka: "SF Mono", "Roboto Mono", Consolas, monospace; /* buat qty/harga, biar align rapi */
+
+  /* Ukuran target sentuh — minimal 48px sesuai pedoman aksesibilitas mobile */
+  --tinggi-tombol: 52px;
+  --radius: 14px;
+  --jarak-aman-bawah: env(safe-area-inset-bottom, 0px);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-tubuh);
+  background: var(--warna-krim);
+  color: var(--warna-arang);
+  -webkit-tap-highlight-color: transparent;
+}
+
+button, input, select {
+  font-family: inherit;
+  font-size: 16px; /* cegah auto-zoom Safari iOS pas fokus input */
+}
+
+button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible {
+  outline: 3px solid var(--warna-karamel);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Layout dasar tiap halaman: top bar tetap terlihat, konten scroll,
+   tombol utama nempel di bawah (gampang dijangkau jempol) */
+.layar {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.top-bar {
+  padding: 16px 20px;
+  background: var(--warna-arang);
+  color: var(--warna-krim);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.top-bar__judul {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.top-bar__konteks {
+  font-size: 13px;
+  color: var(--warna-krim-redup);
+  opacity: 0.85;
+}
+
+.konten {
+  flex: 1;
+  padding: 20px;
+  padding-bottom: 100px; /* ruang buat tombol nempel bawah */
+}
+
+.tombol-utama-bawah {
+  position: sticky;
+  bottom: 0;
+  padding: 16px 20px calc(16px + var(--jarak-aman-bawah));
+  background: linear-gradient(to top, var(--warna-krim) 60%, transparent);
+}
+
+.tombol {
+  width: 100%;
+  height: var(--tinggi-tombol);
+  border-radius: var(--radius);
+  border: none;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.08s ease, opacity 0.15s ease;
+}
+
+.tombol:active {
+  transform: scale(0.98);
+}
+
+.tombol:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.tombol--primer {
+  background: var(--warna-karamel);
+  color: var(--warna-krim);
+}
+
+.tombol--primer:not(:disabled):hover {
+  background: var(--warna-karamel-gelap);
+}
+
+.tombol--sekunder {
+  background: transparent;
+  color: var(--warna-arang);
+  border: 1.5px solid var(--warna-garis);
+}
+
+.tombol--bahaya {
+  background: var(--warna-bahaya);
+  color: var(--warna-krim);
+}
+
+.input-teks {
+  width: 100%;
+  height: var(--tinggi-tombol);
+  padding: 0 16px;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--warna-garis);
+  background: white;
+  color: var(--warna-arang);
+}
+
+.input-teks:focus {
+  border-color: var(--warna-karamel);
+}
+
+.label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--warna-abu);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.field {
+  margin-bottom: 18px;
+}
+
+.pesan-error {
+  background: #FBEAE9;
+  color: var(--warna-bahaya);
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.pesan-sukses {
+  background: #E9F3ED;
+  color: var(--warna-sukses);
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.kartu {
+  background: white;
+  border-radius: var(--radius);
+  padding: 16px;
+  border: 1px solid var(--warna-garis);
+}
+
+.spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid rgba(255,255,255,0.4);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: putar 0.7s linear infinite;
+}
+
+@keyframes putar {
+  to { transform: rotate(360deg); }
+}
