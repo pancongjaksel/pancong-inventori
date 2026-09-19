@@ -1,4 +1,7 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+// Produksi memakai reverse proxy Nginx pada origin yang sama. Fallback relatif
+// ini mencegah bundle production tanpa file .env mencoba memanggil localhost
+// milik perangkat pengguna.
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? 'http://localhost:3000/api' : '/api');
 
 const KEY_ADMIN_TOKEN = 'pj_admin_token';
 const KEY_DEVICE_TOKEN = 'pj_device_token';
