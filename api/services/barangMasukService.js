@@ -1,3 +1,11 @@
+/**
+ * @deprecated Sistem barang-masuk single-item lama. Digantikan oleh sistem
+ * nota multi-item (barangMasukNotaService.js / barangMasukNotaValidator.js /
+ * routes/barangMasukNota.js) sejak Agustus 2026. Tabel transaksi_masuk kosong
+ * (0 baris, terkonfirmasi 2026-08-14) — tidak ada data historis yang bergantung
+ * di sini. Tidak ada UI yang mengarah ke sini (orphan backend-only). Dipertahankan
+ * untuk sementara, aman untuk dihapus di masa depan jika dikonfirmasi ulang.
+ */
 const { pool } = require('../db/pool');
 const {
   validasiFieldDasar,
@@ -49,15 +57,17 @@ async function buatBarangMasukAdmin(input) {
  * stok_ledger (trigger cuma jalan kalau status_verifikasi='terverifikasi').
  */
 async function buatBarangMasukCrew(input) {
-  const { itemId, gudangId, jumlah, satuan, sumber, fotoBuktiUrl, deviceId, namaCrewInput, tanggal } = input;
+  const { itemId, gudangId, jumlah, satuan, sumber, fotoBuktiUrl, namaCrewInput, tanggal } = input;
 
   validasiFieldDasar({ itemId, jumlah, satuan, fotoBuktiUrl });
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    await validasiInputCrew(client, { deviceId, gudangId, namaCrewInput });
+    await validasiInputCrew(client, { gudangId, namaCrewInput });
 
+    // diinput_oleh_device_id SELALU NULL sekarang — gak ada lagi row device
+    // buat direferensiin (lihat migration relax-transaksi-masuk-device-constraint).
     const { rows } = await client.query(
       `INSERT INTO transaksi_masuk
          (item_id, gudang_id, jumlah, satuan, sumber, foto_bukti_url,
@@ -65,10 +75,10 @@ async function buatBarangMasukCrew(input) {
           status_verifikasi, tanggal)
        VALUES
          ($1, $2, $3, $4, $5, $6,
-          'crew', $7, $8,
-          'menunggu', COALESCE($9, CURRENT_DATE))
+          'crew', NULL, $7,
+          'menunggu', COALESCE($8, CURRENT_DATE))
        RETURNING id`,
-      [itemId, gudangId, jumlah, satuan, sumber ?? null, fotoBuktiUrl, deviceId, namaCrewInput.trim(), tanggal ?? null]
+      [itemId, gudangId, jumlah, satuan, sumber ?? null, fotoBuktiUrl, namaCrewInput.trim(), tanggal ?? null]
     );
 
     await client.query('COMMIT');

@@ -14,6 +14,17 @@ async function login({ email, password }) {
   );
   const user = rows[0];
 
+  // Admin Gudang cuma boleh login lewat device QR, gak lewat email+password
+  // (lihat migration add-device-admin-gudang — password_hash-nya emang
+  // sengaja gak bisa dipakai buat login).
+  if (user && user.role === 'admin_gudang') {
+    throw new AppError(
+      'User Admin Gudang hanya bisa login via device QR, bukan email+password. Setup device terlebih dahulu.',
+      403,
+      'ADMIN_GUDANG_QR_ONLY'
+    );
+  }
+
   // Pesan generik SENGAJA sama antara "email gak ada" dan "password salah"
   // — supaya orang gak bisa nebak-nebak email mana yang terdaftar (user
   // enumeration).

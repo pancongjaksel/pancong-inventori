@@ -10,7 +10,9 @@ export default function BarangMasukCrew() {
   const [error, setError] = useState(null);
   const [sukses, setSukses] = useState(false);
 
-  const [form, setForm] = useState({ itemId: '', jumlah: '', satuan: '', sumber: '', fotoBuktiUrl: '', namaCrewInput: '' });
+  const [sumber, setSumber] = useState('');
+  const [fotoBuktiUrl, setFotoBuktiUrl] = useState('');
+  const [daftarItem, setDaftarItem] = useState([{ itemId: '', jumlah: '', satuan: '' }]);
 
   useEffect(() => {
     if (!authStorage.ambilDeviceToken()) {
@@ -20,9 +22,21 @@ export default function BarangMasukCrew() {
     api.get('/master/items').then(setItems).catch(() => {});
   }, [navigate]);
 
-  function pilihItem(itemId) {
+  function ubahBaris(idx, patch) {
+    setDaftarItem((prev) => prev.map((row, i) => (i === idx ? { ...row, ...patch } : row)));
+  }
+
+  function pilihItemBaris(idx, itemId) {
     const item = items.find((i) => String(i.id) === itemId);
-    setForm((f) => ({ ...f, itemId, satuan: item?.satuan || '' }));
+    ubahBaris(idx, { itemId, satuan: item?.satuan || '' });
+  }
+
+  function tambahBaris() {
+    setDaftarItem((prev) => [...prev, { itemId: '', jumlah: '', satuan: '' }]);
+  }
+
+  function hapusBaris(idx) {
+    setDaftarItem((prev) => prev.filter((_, i) => i !== idx));
   }
 
   async function submit(e) {
@@ -30,13 +44,14 @@ export default function BarangMasukCrew() {
     setError(null);
     setLoading(true);
     try {
-      await api.post('/barang-masuk/crew', {
-        itemId: Number(form.itemId),
-        jumlah: Number(form.jumlah),
-        satuan: form.satuan,
-        sumber: form.sumber || undefined,
-        fotoBuktiUrl: form.fotoBuktiUrl,
-        namaCrewInput: form.namaCrewInput,
+      await api.post('/barang-masuk-nota/crew', {
+        sumber: sumber || undefined,
+        fotoBuktiUrl,
+        items: daftarItem.map((row) => ({
+          itemId: Number(row.itemId),
+          jumlah: Number(row.jumlah),
+          satuan: row.satuan,
+        })),
       });
       setSukses(true);
     } catch (err) {
@@ -47,12 +62,14 @@ export default function BarangMasukCrew() {
   }
 
   function mulaiLagi() {
-    setForm({ itemId: '', jumlah: '', satuan: '', sumber: '', fotoBuktiUrl: '', namaCrewInput: '' });
+    setSumber('');
+    setFotoBuktiUrl('');
+    setDaftarItem([{ itemId: '', jumlah: '', satuan: '' }]);
     setSukses(false);
   }
 
-  const bisaKirim =
-    form.itemId && Number(form.jumlah) > 0 && form.satuan.trim() && form.fotoBuktiUrl && form.namaCrewInput.trim();
+  const semuaBarisValid = daftarItem.every((row) => row.itemId && Number(row.jumlah) > 0 && row.satuan.trim());
+  const bisaKirim = fotoBuktiUrl && semuaBarisValid && daftarItem.length > 0;
 
   if (sukses) {
     return (
@@ -72,61 +89,69 @@ export default function BarangMasukCrew() {
   return (
     <div className="konten">
       <p style={{ color: 'var(--warna-abu)', marginTop: 0, fontSize: 13 }}>
-        Buat barang yang dikirim supplier LANGSUNG ke gudang ini (bukan lewat Gudang Produksi). Setelah dikirim, Admin
-        perlu verifikasi dulu sebelum stok resmi bertambah.
+        Buat barang yang dikirim supplier LANGSUNG ke gudang ini (bukan lewat Gudang Produksi). Bisa input beberapa item sekaligus kalau datang dalam 1 nota. Setelah dikirim, Admin perlu verifikasi dulu sebelum stok resmi bertambah.
       </p>
 
       {error && <div className="pesan-error">{error}</div>}
 
       <form onSubmit={submit}>
         <div className="field">
-          <label className="label">Nama kamu</label>
-          <input
-            className="input-teks"
-            placeholder="Ketik nama kamu"
-            value={form.namaCrewInput}
-            onChange={(e) => setForm((f) => ({ ...f, namaCrewInput: e.target.value }))}
-          />
-        </div>
-
-        <div className="field">
-          <label className="label">Item</label>
-          <select className="input-teks" value={form.itemId} onChange={(e) => pilihItem(e.target.value)}>
-            <option value="">Pilih item</option>
-            {items.map((i) => <option key={i.id} value={i.id}>{i.nama}</option>)}
-          </select>
-        </div>
-
-        <div className="field">
-          <label className="label">Jumlah</label>
-          <input
-            type="number"
-            className="input-teks"
-            value={form.jumlah}
-            onChange={(e) => setForm((f) => ({ ...f, jumlah: e.target.value }))}
-          />
-        </div>
-
-        <div className="field">
-          <label className="label">Satuan</label>
-          <input
-            className="input-teks"
-            value={form.satuan}
-            onChange={(e) => setForm((f) => ({ ...f, satuan: e.target.value }))}
-          />
-        </div>
-
-        <div className="field">
-          <label className="label">Dari supplier (opsional)</label>
+          <label className="label">Dari supplier (opsional, berlaku untuk semua item)</label>
           <input
             className="input-teks"
             placeholder="mis. Toko Sumber Rejeki"
-            value={form.sumber}
-            onChange={(e) => setForm((f) => ({ ...f, sumber: e.target.value }))}
+            value={sumber}
+            onChange={(e) => setSumber(e.target.value)}
           />
         </div>
 
-        <UploadFoto value={form.fotoBuktiUrl} onChange={(url) => setForm((f) => ({ ...f, fotoBuktiUrl: url }))} label="Foto nota/bukti" />
+        <p className="label" style={{ marginTop: 16, marginBottom: 8 }}>Daftar Item ({daftarItem.length})</p>
+
+        {daftarItem.map((row, idx) => (
+          <div key={idx} className="kartu" style={{ marginBottom: 10, position: 'relative' }}>
+            {daftarItem.length > 1 && (
+              <button
+                type="button"
+                onClick={() => hapusBaris(idx)}
+                style={{ position: 'absolute', top: 8, right: 8, background: 'none', border: 'none', color: 'var(--warna-bahaya, #b91c1c)', fontSize: 13, cursor: 'pointer' }}
+              >
+                Hapus
+              </button>
+            )}
+            <div className="field">
+              <label className="label">Item</label>
+              <select className="input-teks" value={row.itemId} onChange={(e) => pilihItemBaris(idx, e.target.value)}>
+                <option value="">Pilih item</option>
+                {items.map((i) => <option key={i.id} value={i.id}>{i.nama}</option>)}
+              </select>
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <div className="field" style={{ flex: 1 }}>
+                <label className="label">Jumlah</label>
+                <input
+                  type="number"
+                  className="input-teks"
+                  value={row.jumlah}
+                  onChange={(e) => ubahBaris(idx, { jumlah: e.target.value })}
+                />
+              </div>
+              <div className="field" style={{ flex: 1 }}>
+                <label className="label">Satuan</label>
+                <input
+                  className="input-teks"
+                  value={row.satuan}
+                  onChange={(e) => ubahBaris(idx, { satuan: e.target.value })}
+                />
+              </div>
+            </div>
+          </div>
+        ))}
+
+        <button type="button" className="tombol tombol--sekunder" onClick={tambahBaris} style={{ marginBottom: 16 }}>
+          + Tambah item lain
+        </button>
+
+        <UploadFoto value={fotoBuktiUrl} onChange={setFotoBuktiUrl} label="Foto nota/bukti (1 foto untuk semua item)" />
 
         <button type="submit" className="tombol tombol--primer" disabled={!bisaKirim || loading} style={{ marginTop: 8 }}>
           {loading ? <span className="spinner" /> : 'Kirim, tunggu verifikasi Admin'}

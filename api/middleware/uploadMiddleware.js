@@ -7,7 +7,10 @@ const FOLDER_UPLOAD = path.join(__dirname, '..', 'uploads');
 fs.mkdirSync(FOLDER_UPLOAD, { recursive: true });
 
 const TIPE_FILE_DIIZINKAN = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
-const MAX_UKURAN_BYTES = 8 * 1024 * 1024; // 8MB — cukup buat foto HP, gak kebesaran
+// 15MB — client (UploadFoto.jsx) udah resize+compress foto ke JPEG sebelum
+// upload, jadi limit ini praktis cuma kena kalau kompresi di-skip (HEIC) atau
+// gagal (fallback ke file asli) — buffer aman buat kasus itu, bukan batas normal.
+const MAX_UKURAN_BYTES = 15 * 1024 * 1024;
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, FOLDER_UPLOAD),

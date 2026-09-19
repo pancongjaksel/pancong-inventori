@@ -2,20 +2,22 @@ const { AppError } = require('../errors/AppError');
 const { validasiAksesGudangAdmin } = require('./aksesGudangValidator');
 
 /** Whitelist tabel yang boleh dikoreksi — dipakai juga buat cegah SQL injection
- * saat nama tabel ini diselipkan langsung ke query dinamis di service. */
-const TABEL_VALID = ['transaksi_masuk', 'sesi_pengambilan_crew', 'transfer_gudang'];
+ * saat nama tabel ini diselipkan langsung ke query dinamis di service.
+ * 'transaksi_masuk' — sistem lama, orphan, tabel kosong (lihat barangMasuk.js) */
+const TABEL_VALID = ['transaksi_masuk', 'transaksi_masuk_nota', 'sesi_pengambilan_crew', 'transfer_gudang'];
 
 /**
  * Cari baris stok_ledger yang perlu direversal untuk satu transaksi asal.
  * Beda tabel, beda cara nyambungin ke stok_ledger:
- * - transaksi_masuk & transfer_gudang: referensi langsung 1:banyak
+ * - transaksi_masuk, transaksi_masuk_nota & transfer_gudang: referensi langsung 1:banyak
  *   (transfer_gudang bisa punya 2 baris ledger kalau statusnya udah 'diterima':
- *   transfer_keluar + transfer_masuk — dua-duanya direversal sekaligus)
+ *   transfer_keluar + transfer_masuk — dua-duanya direversal sekaligus; transaksi_masuk_nota
+ *   bisa punya banyak baris ledger juga, 1 per item di notanya — semua direversal sekaligus)
  * - sesi_pengambilan_crew: ledger-nya nempel di level item (sesi_pengambilan_item),
  *   jadi harus join dulu buat dapetin semua baris item dalam sesi itu
  */
 async function cariLedgerUntukDikoreksi(client, tabelTransaksi, transaksiAsalId) {
-  if (tabelTransaksi === 'transaksi_masuk' || tabelTransaksi === 'transfer_gudang') {
+  if (tabelTransaksi === 'transaksi_masuk' || tabelTransaksi === 'transaksi_masuk_nota' || tabelTransaksi === 'transfer_gudang') {
     const { rows } = await client.query(
       `SELECT id, item_id, gudang_id, qty_delta, tipe_pergerakan
        FROM stok_ledger

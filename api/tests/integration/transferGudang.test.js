@@ -101,6 +101,23 @@ describe('transferGudangService', () => {
     assert.equal(Number(rows[0].stok_saat_ini), 20);
   });
 
+  test('Owner boleh mengonfirmasi transfer tanpa foto bukti terima', async () => {
+    await buatBarangMasukAdmin({
+      itemId: fx.itemBiasaId, gudangId: fx.gudangUgmId, jumlah: 50, satuan: 'Pack',
+      fotoBuktiUrl: 'https://contoh.com/nota.jpg', adminUserId: fx.adminId,
+    });
+    const transfer = await kirimTransfer({
+      itemId: fx.itemBiasaId, gudangAsalId: fx.gudangUgmId, gudangTujuanId: fx.gudangGlagahsariId,
+      jumlah: 20, fotoBuktiKirimUrl: 'https://contoh.com/bukti.jpg', dikirimOlehUserId: fx.adminId,
+    });
+
+    await terimaTransfer({ id: transfer.id, diterimaOlehUserId: fx.ownerId, diterimaOlehRole: 'owner' });
+
+    const { rows } = await pool.query('SELECT status, foto_bukti_terima_url FROM transfer_gudang WHERE id = $1', [transfer.id]);
+    assert.equal(rows[0].status, 'diterima');
+    assert.equal(rows[0].foto_bukti_terima_url, null);
+  });
+
   test('DITOLAK kalau transfer yang sama diterima dua kali', async () => {
     await buatBarangMasukAdmin({
       itemId: fx.itemBiasaId, gudangId: fx.gudangUgmId, jumlah: 50, satuan: 'Pack',

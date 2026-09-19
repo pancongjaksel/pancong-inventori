@@ -4,9 +4,30 @@ const KEY_ADMIN_TOKEN = 'pj_admin_token';
 const KEY_DEVICE_TOKEN = 'pj_device_token';
 const KEY_DEVICE_INFO = 'pj_device_info'; // { deviceId, gudangId, namaGudang } - buat ditampilin di UI tanpa fetch ulang
 
+/**
+ * Baca payload JWT tanpa verifikasi signature — CUMA buat kebutuhan UI
+ * (mis. mutusin mau redirect ke mana), BUKAN buat keputusan keamanan.
+ * Keamanan tetap sepenuhnya di server (requireDevice/requireAdminGudang
+ * selalu verifikasi ulang signature + cross-check DB tiap request).
+ */
+function decodeJwtPayload(token) {
+  try {
+    const payloadB64 = token.split('.')[1];
+    const normalized = payloadB64.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
+    return JSON.parse(atob(padded));
+  } catch {
+    return null;
+  }
+}
+
 export const authStorage = {
   simpanAdminToken: (token) => localStorage.setItem(KEY_ADMIN_TOKEN, token),
   ambilAdminToken: () => localStorage.getItem(KEY_ADMIN_TOKEN),
+  ambilAdminRole: () => {
+    const token = localStorage.getItem(KEY_ADMIN_TOKEN);
+    return token ? decodeJwtPayload(token)?.role ?? null : null;
+  },
   hapusAdminToken: () => localStorage.removeItem(KEY_ADMIN_TOKEN),
 
   simpanDevice: (deviceToken, info) => {
@@ -17,6 +38,17 @@ export const authStorage = {
   ambilDeviceInfo: () => {
     const raw = localStorage.getItem(KEY_DEVICE_INFO);
     return raw ? JSON.parse(raw) : null;
+  },
+  /**
+   * Role device dari token JWT-nya sendiri (bukan dari KEY_DEVICE_INFO,
+   * biar gak ada 2 sumber kebenaran yang bisa gak sinkron). Device crew
+   * biasa (device_gudang) gak punya field `role` di token-nya sama sekali
+   * — jadi hasilnya `null`, bukan `'crew'` secara eksplisit.
+   */
+  ambilDeviceRole: () => {
+    const token = localStorage.getItem(KEY_DEVICE_TOKEN);
+    if (!token) return null;
+    return decodeJwtPayload(token)?.role ?? null;
   },
   hapusDevice: () => {
     localStorage.removeItem(KEY_DEVICE_TOKEN);
@@ -41,7 +73,7 @@ export class ApiError extends Error {
  * @param {object} [options]
  * @param {'admin'|'device'|'none'} [options.auth] - default 'admin' kalau ada token admin, else 'device' kalau ada token device
  */
-async function apiFetch(path, { method = 'GET', body, auth } = {}) {
+async function apiFetch(path, { method = 'GET', body, auth, idempotencyKey } = {}) {
   const headers = { 'Content-Type': 'application/json' };
 
   const modeAuth = auth ?? (authStorage.ambilAdminToken() ? 'admin' : authStorage.ambilDeviceToken() ? 'device' : 'none');
@@ -50,6 +82,7 @@ async function apiFetch(path, { method = 'GET', body, auth } = {}) {
   } else if (modeAuth === 'device' && authStorage.ambilDeviceToken()) {
     headers['X-Device-Token'] = authStorage.ambilDeviceToken();
   }
+  if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey;
 
   const response = await fetch(`${BASE_URL}${path}`, {
     method,
@@ -107,6 +140,7 @@ export const api = {
   get: (path, opts) => apiFetch(path, { ...opts, method: 'GET' }),
   post: (path, body, opts) => apiFetch(path, { ...opts, method: 'POST', body }),
   patch: (path, body, opts) => apiFetch(path, { ...opts, method: 'PATCH', body }),
+  put: (path, body, opts) => apiFetch(path, { ...opts, method: 'PUT', body }),
   del: (path, opts) => apiFetch(path, { ...opts, method: 'DELETE' }),
 };
 
@@ -117,8 +151,14 @@ export const api = {
  * <a> sementara.
  */
 export async function downloadFile(path, namaFileFallback = 'download') {
+  const headers = {};
+  if (authStorage.ambilAdminToken()) {
+    headers.Authorization = `Bearer ${authStorage.ambilAdminToken()}`;
+  } else if (authStorage.ambilDeviceToken()) {
+    headers['X-Device-Token'] = authStorage.ambilDeviceToken();
+  }
   const response = await fetch(`${BASE_URL}${path}`, {
-    headers: { Authorization: `Bearer ${authStorage.ambilAdminToken()}` },
+    headers,
   });
 
   if (!response.ok) {

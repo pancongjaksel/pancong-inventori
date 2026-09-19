@@ -216,3 +216,680 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 @keyframes putar {
   to { transform: rotate(360deg); }
 }
+
+/* ─── Stok Saat Ini — badge status ────────────────────────────────────────── */
+
+.stok-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.stok-badge--aman    { background: rgba(63, 125, 88, 0.12);  color: var(--warna-sukses);  }
+.stok-badge--menipis { background: rgba(184, 114, 46, 0.12); color: var(--warna-karamel); }
+.stok-badge--negatif { background: rgba(178, 58, 52, 0.12);  color: var(--warna-bahaya);  }
+
+/* Stacked card di mobile — tabel jadi kartu per item, scroll horizontal hilang */
+@media (max-width: 640px) {
+  /* Wrapper melepas kartu-styling di mobile; tiap <tr> jadi kartu sendiri */
+  .stok-tabel-wrapper {
+    background: transparent;
+    border: none;
+    padding: 0;
+    overflow: visible;
+  }
+
+  .stok-tabel           { display: block; }
+  .stok-tabel thead     { display: none; }
+  .stok-tabel tbody     { display: flex; flex-direction: column; gap: 10px; }
+
+  .stok-tabel tr {
+    display: block;
+    border: 1px solid var(--warna-garis);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    overflow: hidden;
+  }
+
+  .stok-tabel td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    text-align: left;
+    border: none;
+  }
+
+  .stok-tabel td::before {
+    content: attr(data-label);
+    font-size: 12px;
+    color: var(--warna-abu);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-right: 12px;
+    flex-shrink: 0;
+  }
+
+  /* Nama Item jadi judul kartu — full-width, tanpa label di kiri */
+  .stok-tabel td[data-label="Nama Item"] {
+    display: block;
+    font-weight: 700;
+    font-size: 15px;
+    padding-bottom: 10px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid var(--warna-garis);
+  }
+  .stok-tabel td[data-label="Nama Item"]::before { display: none; }
+}
+
+/* ─── Verifikasi Barang Masuk ──────────────────────────────────────────────── */
+
+.verifikasi-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(184, 114, 46, 0.10);
+  border: 1px solid rgba(184, 114, 46, 0.30);
+  color: var(--warna-karamel);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.verifikasi-badge-role {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  vertical-align: middle;
+  margin-left: 8px;
+}
+.verifikasi-badge-role--crew  { background: rgba(63, 125, 88, 0.12); color: var(--warna-sukses); }
+.verifikasi-badge-role--admin { background: rgba(37, 99, 235, 0.10); color: #2563eb; }
+
+.verifikasi-foto-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--warna-karamel);
+  background: rgba(184, 114, 46, 0.08);
+  border: 1px solid rgba(184, 114, 46, 0.25);
+  border-radius: 999px;
+  padding: 3px 10px;
+  text-decoration: none;
+}
+
+.verifikasi-aksi {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+@media (max-width: 480px) {
+  .verifikasi-aksi { flex-direction: column; }
+}
+
+/* ─── Nav Admin Gudang ─────────────────────────────────────────────────────── */
+
+.gudang-nav {
+  display: flex;
+  gap: 8px;
+}
+
+.gudang-nav__tab {
+  flex: 1;
+  text-align: center;
+  padding: 10px 0;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--warna-krim-redup);
+  background: transparent;
+  position: relative; /* buat badge absolute di mobile */
+}
+
+.gudang-nav__tab--aktif {
+  color: var(--warna-krim);
+  background: var(--warna-karamel);
+}
+
+/* Label panjang (default desktop) */
+.gudang-nav__label-pendek { display: none; }
+.gudang-nav__label-panjang { display: inline; }
+
+.gudang-nav__badge {
+  display: inline-block;
+  background: var(--warna-bahaya);
+  color: white;
+  border-radius: 999px;
+  padding: 1px 7px;
+  font-size: 11px;
+  font-weight: 700;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+@media (max-width: 640px) {
+  /* Nav pindah jadi bottom-nav fixed, keluar dari flow top-bar */
+  .gudang-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--warna-arang);
+    padding: 8px 8px calc(8px + var(--jarak-aman-bawah));
+    gap: 4px;
+    z-index: 100;
+    /* top-bar kehilangan height nav — bisa menyempit, itu disengaja */
+  }
+
+  .gudang-nav__tab {
+    font-size: 11px;
+    padding: 8px 4px;
+    border-radius: 8px;
+  }
+
+  /* Swap label */
+  .gudang-nav__label-panjang { display: none; }
+  .gudang-nav__label-pendek  { display: inline; }
+
+  /* Badge pindah ke pojok kanan-atas tab, gak mendorong lebar */
+  .gudang-nav__badge {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    margin-left: 0;
+    padding: 1px 5px;
+    font-size: 10px;
+  }
+}
+
+/* ─── Transfer Gudang ──────────────────────────────────────────────────────── */
+
+.transfer-tab-group {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.transfer-tab {
+  height: 44px;
+  padding: 0 18px;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--warna-garis);
+  background: transparent;
+  color: var(--warna-arang);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.1s ease, border-color 0.1s ease, color 0.1s ease;
+}
+
+.transfer-tab--aktif {
+  background: var(--warna-krim-redup);
+  border-color: var(--warna-karamel);
+  color: var(--warna-karamel);
+}
+
+/* ─── Riwayat Penyesuaian ─────────────────────────────────────────────────── */
+
+.riwayat-filter {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Desktop: elemen filter pakai lebar natural masing-masing */
+.riwayat-filter .input-teks {
+  width: auto;
+}
+
+@media (max-width: 480px) {
+  .riwayat-filter {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .riwayat-filter .input-teks {
+    width: 100%;
+  }
+
+  .riwayat-filter__pemisah {
+    text-align: center;
+  }
+}
+
+/* "Item" jadi judul kartu di stacked-card mode (mirip "Nama Item" di StokSaatIni) */
+@media (max-width: 640px) {
+  .stok-tabel td[data-label="Item"] {
+    display: block;
+    font-weight: 700;
+    font-size: 15px;
+    padding-bottom: 10px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid var(--warna-garis);
+  }
+  .stok-tabel td[data-label="Item"]::before { display: none; }
+}
+
+/* ==========================================================================
+   Stok Saat Ini — kartu mobile jadi collapsible (accordion), biar gak
+   perlu scroll panjang buat lihat semua item. Default collapsed, cuma
+   nampilin Nama Item + Stok Saat Ini + Status. Ditambahkan 21 Agustus 2026.
+   ========================================================================== */
+
+/* Tombol pembungkus "Nama Item" — reset total gaya default <button>,
+   dipakai di desktop & mobile (di desktop efeknya cuma "gak keliatan
+   kayak tombol", klik-nya gak ngapa-ngapain di sana karena collapse
+   cuma berlaku di mobile). */
+.stok-tabel__toggle {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.stok-tabel__toggle svg {
+  display: none; /* chevron cuma relevan/kelihatan di mode kartu mobile */
+}
+
+@media (max-width: 640px) {
+  .stok-tabel__toggle svg {
+    display: block;
+    width: 16px;
+    height: 16px;
+    color: var(--warna-abu);
+    flex-shrink: 0;
+    transition: transform 0.15s ease;
+  }
+
+  .baris-terbuka .stok-tabel__toggle svg {
+    transform: rotate(180deg);
+  }
+
+  /* Default (belum di-klik): sembunyiin detail sekunder, sisain
+     Nama Item (judul kartu) + Stok Saat Ini + Status aja. */
+  .stok-tabel tr:not(.baris-terbuka) td[data-label="Gudang"],
+  .stok-tabel tr:not(.baris-terbuka) td[data-label="Kode"],
+  .stok-tabel tr:not(.baris-terbuka) td[data-label="Satuan"],
+  .stok-tabel tr:not(.baris-terbuka) td[data-label="Reorder Point"] {
+    display: none;
+  }
+}
+
+/* ─── Notifikasi Bell ──────────────────────────────────────────────────────── */
+
+.notif-bell {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: var(--warna-karamel);
+  color: var(--warna-krim);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  transition: transform 0.08s ease, background 0.1s ease;
+}
+
+.notif-bell:active {
+  transform: scale(0.94);
+}
+
+.notif-bell:not(:disabled):hover {
+  background: var(--warna-karamel-gelap);
+}
+
+.notif-bell__badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: var(--warna-bahaya);
+  color: white;
+  border-radius: 999px;
+  min-width: 18px;
+  height: 18px;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border: 2px solid var(--warna-krim);
+  pointer-events: none;
+}
+
+.notif-panel {
+  position: fixed;
+  width: 320px;
+  max-width: calc(100vw - 16px);
+  max-height: 480px;
+  background: white;
+  border-radius: var(--radius);
+  border: 1px solid var(--warna-garis);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 2000;
+}
+
+.notif-panel__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  border-bottom: 1px solid var(--warna-garis);
+  flex-shrink: 0;
+  color: var(--warna-arang);
+}
+
+.notif-panel__hapus-semua {
+  background: none;
+  border: none;
+  color: var(--warna-abu);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.notif-panel__hapus-semua:hover {
+  color: var(--warna-bahaya);
+}
+
+.notif-panel__kosong {
+  padding: 24px 14px;
+  text-align: center;
+  color: var(--warna-abu);
+  font-size: 13px;
+  margin: 0;
+}
+
+.notif-panel__list {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.notif-panel__kartu {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--warna-garis);
+}
+
+.notif-panel__kartu:last-child {
+  border-bottom: none;
+}
+
+.notif-panel__kartu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.notif-panel__kartu-tutup {
+  background: none;
+  border: none;
+  color: var(--warna-abu);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 2px 4px;
+  flex-shrink: 0;
+}
+
+.notif-panel__koreksi-btn {
+  background: none;
+  border: none;
+  color: var(--warna-karamel);
+  cursor: pointer;
+  font-size: 11px;
+  white-space: nowrap;
+  padding: 2px 4px;
+  flex-shrink: 0;
+}
+
+/* Sembunyikan spinner bawaan browser di input[type=number] */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type=number] { -moz-appearance: textfield; }
+
+/* ─── Crew Mobile Shell ─────────────────────────────────────────────────── */
+
+.crew-app {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  background: var(--warna-krim);
+  overflow: hidden;
+}
+
+.mobile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--warna-arang);
+  flex-shrink: 0;
+  gap: 12px;
+}
+
+.mobile-header__left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.mobile-header__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--warna-krim);
+  line-height: 1.2;
+}
+
+.mobile-header__subtitle {
+  font-size: 11px;
+  color: var(--warna-abu);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobile-header__action {
+  flex-shrink: 0;
+}
+
+.mobile-header__logout {
+  background: none;
+  border: none;
+  color: var(--warna-abu);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 0;
+  text-decoration: underline;
+}
+
+.crew-content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobile-page {
+  min-height: 100%;
+}
+
+.mobile-page__content {
+  padding: 20px 16px 24px;
+}
+
+/* ─── Bottom Navigation ─────────────────────────────────────────────────── */
+
+.bottom-nav {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background: var(--warna-arang);
+  flex-shrink: 0;
+  padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+}
+
+.bottom-nav__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 4px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: var(--warna-abu);
+  transition: color 0.15s;
+  cursor: pointer;
+}
+
+.bottom-nav__item--active {
+  color: var(--warna-karamel);
+}
+
+.bottom-nav__icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.bottom-nav__label {
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ─── Admin Shell (desktop sidebar + mobile bottom nav) ─────────────────── */
+
+.admin-app {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  background: var(--warna-krim);
+  overflow: hidden;
+}
+
+.admin-sidebar {
+  display: none; /* hidden on mobile — BottomNav handles mobile nav */
+}
+
+.admin-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.admin-content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 20px 16px 24px;
+}
+
+@media (min-width: 900px) {
+  .admin-app {
+    flex-direction: row;
+  }
+
+  .admin-sidebar {
+    display: flex;
+    flex-direction: column;
+    width: 200px;
+    flex-shrink: 0;
+    background: var(--warna-arang);
+    height: 100dvh;
+    overflow-y: auto;
+  }
+
+  .admin-main {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Mobile header hides on desktop — sidebar handles it */
+  .admin-main > .mobile-header {
+    display: none;
+  }
+
+  /* BottomNav hides on desktop — sidebar handles nav */
+  .admin-app > .bottom-nav {
+    display: none;
+  }
+}
+
+.admin-sidebar__logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 16px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.admin-sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 8px;
+  flex: 1;
+}
+
+.admin-sidebar__item {
+  display: block;
+  padding: 9px 12px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--warna-abu);
+  transition: background 0.12s, color 0.12s;
+}
+
+.admin-sidebar__item:hover {
+  background: rgba(255,255,255,0.06);
+  color: var(--warna-krim);
+}
+
+.admin-sidebar__item--active {
+  background: var(--warna-karamel);
+  color: white;
+  font-weight: 600;
+}
+
+.admin-sidebar__item--active:hover {
+  background: var(--warna-karamel-gelap);
+  color: white;
+}
+
+.admin-sidebar__footer {
+  padding: 12px 16px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}

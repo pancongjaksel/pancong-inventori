@@ -18,7 +18,7 @@ function validasiBuatItem({ kodeBarang, nama, kategori, satuan }) {
 }
 
 function validasiUpdateItem(fields) {
-  const adaField = ['nama', 'kategori', 'satuan', 'statusAktif', 'reorderPoint', 'gudangDefaultId', 'catatanMigrasi'].some(
+  const adaField = ['nama', 'kategori', 'satuan', 'statusAktif', 'reorderPoint', 'gudangDefaultId', 'catatanMigrasi', 'harga'].some(
     (k) => fields[k] !== undefined
   );
   if (!adaField) {
@@ -29,6 +29,9 @@ function validasiUpdateItem(fields) {
   }
   if (fields.reorderPoint !== undefined && fields.reorderPoint !== null && fields.reorderPoint < 0) {
     throw new AppError('Reorder point gak boleh negatif.', 400, 'REORDER_POINT_TIDAK_VALID');
+  }
+  if (fields.harga !== undefined && (fields.harga < 0 || !Number.isInteger(fields.harga))) {
+    throw new AppError('Harga harus berupa bilangan bulat ≥ 0.', 400, 'HARGA_TIDAK_VALID');
   }
 }
 

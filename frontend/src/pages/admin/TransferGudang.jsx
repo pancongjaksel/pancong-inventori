@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { api, urlLengkapUpload, ApiError } from '../../api/client';
+import { api, urlLengkapUpload, ApiError, authStorage } from '../../api/client';
 import UploadFoto from '../../components/UploadFoto';
 
 export default function TransferGudang() {
-  const [tab, setTab] = useState('menunggu'); // 'menunggu' | 'kirim-baru'
+  const adalahOwner = authStorage.ambilAdminRole() === 'owner';
+  const [tab, setTab] = useState('menunggu');
   const [antrean, setAntrean] = useState([]);
   const [items, setItems] = useState([]);
   const [gudangs, setGudangs] = useState([]);
@@ -52,8 +53,8 @@ export default function TransferGudang() {
 
   async function terimaTransfer(id) {
     const fotoBuktiTerimaUrl = fotoTerimaPerId[id];
-    if (!fotoBuktiTerimaUrl) {
-      setError('Isi dulu URL foto bukti terima buat transfer ini.');
+    if (!adalahOwner && !fotoBuktiTerimaUrl) {
+      setError('Upload dulu foto bukti terima untuk transfer ini.');
       return;
     }
     setError(null);
@@ -70,21 +71,23 @@ export default function TransferGudang() {
 
   if (loading) return <p style={{ color: 'var(--warna-abu)' }}>Memuat...</p>;
 
+  const bisaKirimForm = form.itemId && form.gudangAsalId && form.gudangTujuanId
+    && Number(form.jumlah) > 0
+    && form.fotoBuktiKirimUrl;
+
   return (
     <div>
       {error && <div className="pesan-error">{error}</div>}
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
+      <div className="transfer-tab-group">
         <button
-          className="tombol tombol--sekunder"
-          style={{ width: 'auto', padding: '0 16px', background: tab === 'menunggu' ? 'var(--warna-krim-redup)' : undefined }}
+          className={`transfer-tab${tab === 'menunggu' ? ' transfer-tab--aktif' : ''}`}
           onClick={() => setTab('menunggu')}
         >
-          Menunggu Diterima ({antrean.length})
+          Menunggu Diterima{antrean.length > 0 ? ` (${antrean.length})` : ''}
         </button>
         <button
-          className="tombol tombol--sekunder"
-          style={{ width: 'auto', padding: '0 16px', background: tab === 'kirim-baru' ? 'var(--warna-krim-redup)' : undefined }}
+          className={`transfer-tab${tab === 'kirim-baru' ? ' transfer-tab--aktif' : ''}`}
           onClick={() => setTab('kirim-baru')}
         >
           Kirim Baru
@@ -94,23 +97,55 @@ export default function TransferGudang() {
       {tab === 'menunggu' && (
         <>
           {antrean.length === 0 && (
-            <p style={{ textAlign: 'center', color: 'var(--warna-abu)', marginTop: 40 }}>Gak ada transfer yang lagi nunggu diterima.</p>
+            <p style={{ textAlign: 'center', color: 'var(--warna-abu)', marginTop: 40 }}>
+              Gak ada transfer yang lagi nunggu diterima.
+            </p>
           )}
           {antrean.map((tf) => (
             <div key={tf.id} className="kartu" style={{ marginBottom: 14 }}>
-              <div style={{ fontWeight: 700 }}>{tf.nama_item}</div>
-              <div style={{ fontSize: 13, color: 'var(--warna-abu)', marginBottom: 8 }}>
-                {tf.nama_gudang_asal} → {tf.nama_gudang_tujuan} · {tf.jumlah} {tf.satuan} · dikirim oleh {tf.dikirim_oleh_nama}
+              <div style={{ fontWeight: 700, marginBottom: 2 }}>{tf.nama_item}</div>
+
+              {/* Rute pill */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, marginBottom: 10 }}>
+                <span style={{ background: 'var(--warna-krim-redup)', border: '1px solid var(--warna-garis)', borderRadius: 999, padding: '2px 10px', fontWeight: 600 }}>
+                  {tf.nama_gudang_asal}
+                </span>
+                <span style={{ color: 'var(--warna-abu)' }}>→</span>
+                <span style={{ background: 'var(--warna-krim-redup)', border: '1px solid var(--warna-garis)', borderRadius: 999, padding: '2px 10px', fontWeight: 600 }}>
+                  {tf.nama_gudang_tujuan}
+                </span>
               </div>
-              <a href={urlLengkapUpload(tf.foto_bukti_kirim_url)} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: 'var(--warna-karamel)' }}>
-                Lihat foto bukti kirim →
+
+              {/* Ringkasan qty + pengirim */}
+              <div style={{ fontSize: 13, marginBottom: 10 }}>
+                <span style={{ fontFamily: 'var(--font-angka)', fontWeight: 700, fontSize: 15 }}>
+                  {tf.jumlah} {tf.satuan}
+                </span>
+                <span style={{ color: 'var(--warna-abu)', marginLeft: 8 }}>· dikirim oleh {tf.dikirim_oleh_nama}</span>
+              </div>
+
+              <a
+                href={urlLengkapUpload(tf.foto_bukti_kirim_url)}
+                target="_blank"
+                rel="noreferrer"
+                className="verifikasi-foto-link"
+                style={{ marginBottom: 12 }}
+              >
+                Foto bukti kirim →
               </a>
+
               <UploadFoto
-                label="Foto bukti terima"
+                label={adalahOwner ? 'Foto bukti terima (opsional untuk Owner)' : 'Foto bukti terima'}
                 value={fotoTerimaPerId[tf.id] || ''}
                 onChange={(url) => setFotoTerimaPerId((prev) => ({ ...prev, [tf.id]: url }))}
               />
-              <button className="tombol tombol--primer" style={{ height: 44 }} disabled={prosesId === tf.id} onClick={() => terimaTransfer(tf.id)}>
+
+              <button
+                className="tombol tombol--primer"
+                style={{ height: 44 }}
+                disabled={(!adalahOwner && !fotoTerimaPerId[tf.id]) || prosesId === tf.id}
+                onClick={() => terimaTransfer(tf.id)}
+              >
                 {prosesId === tf.id ? <span className="spinner" /> : 'Konfirmasi diterima'}
               </button>
             </div>
@@ -150,8 +185,8 @@ export default function TransferGudang() {
             value={form.fotoBuktiKirimUrl}
             onChange={(url) => setForm((f) => ({ ...f, fotoBuktiKirimUrl: url }))}
           />
-          <button type="submit" className="tombol tombol--primer" disabled={prosesId === 'form'}>
-            {prosesId === 'form' ? <span className="spinner" /> : 'Kirim'}
+          <button type="submit" className="tombol tombol--primer" disabled={!bisaKirimForm || prosesId === 'form'} style={{ marginTop: 8 }}>
+            {prosesId === 'form' ? <span className="spinner" /> : 'Kirim transfer'}
           </button>
         </form>
       )}

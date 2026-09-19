@@ -16,6 +16,11 @@ export default function Login() {
     setLoading(true);
     try {
       const hasil = await api.post('/auth/login', { email, password }, { auth: 'none' });
+      // Hapus sesi device (kalau ada, mis. dari testing setup-device di
+      // browser yang sama) — HalamanAwal cek device token DULUAN, jadi kalau
+      // dua-duanya kesimpen, admin bisa ke-redirect ke /crew atau
+      // /admin-gudang padahal sesi admin-nya masih valid.
+      authStorage.hapusDevice();
       authStorage.simpanAdminToken(hasil.token);
       navigate('/admin');
     } catch (err) {

@@ -1,39 +1,77 @@
-import { NavLink, Outlet } from 'react-router-dom';
-import { authStorage } from '../api/client';
-
-const TAB_STYLE = ({ isActive }) => ({
-  flex: 1,
-  textAlign: 'center',
-  padding: '10px 0',
-  borderRadius: 10,
-  fontSize: 14,
-  fontWeight: 600,
-  textDecoration: 'none',
-  color: isActive ? 'var(--warna-krim)' : 'var(--warna-krim-redup)',
-  background: isActive ? 'var(--warna-karamel)' : 'transparent',
-});
+import { useEffect, useState } from 'react';
+import { Outlet, useNavigate } from 'react-router-dom';
+import { api, authStorage } from '../api/client';
+import BottomNav from '../components/layout/BottomNav';
 
 export default function CrewShell() {
+  const navigate = useNavigate();
   const deviceInfo = authStorage.ambilDeviceInfo();
+  const [jumlahNotif, setJumlahNotif] = useState(0);
+
+  useEffect(() => {
+    let batal = false;
+    async function cekNotif() {
+      try {
+        const data = await api.get('/notifikasi/jumlah-belum-dibaca');
+        if (!batal) setJumlahNotif(data?.jumlah ?? 0);
+      } catch {
+        // diam-diam
+      }
+    }
+    cekNotif();
+    const timer = setInterval(cekNotif, 30000);
+    return () => { batal = true; clearInterval(timer); };
+  }, []);
+
+  function handleLogout() {
+    authStorage.hapusDevice();
+    navigate('/setup-device');
+  }
 
   return (
-    <div className="layar">
-      <div className="top-bar" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 12 }}>
-        <div>
-          <div className="top-bar__judul">Inventori Pancong Jaksel</div>
-          <div className="top-bar__konteks">{deviceInfo?.namaGudang}</div>
+    <div className="crew-app">
+      <header className="mobile-header">
+        <div className="mobile-header__left">
+          <div style={{ background: 'white', borderRadius: 8, padding: 3, display: 'flex', flexShrink: 0 }}>
+            <img src="/logo.png" alt="Pancong Jaksel" style={{ width: 32, height: 32, objectFit: 'contain' }} />
+          </div>
+          <div>
+            <div className="mobile-header__title">Pancong Jaksel</div>
+            <div className="mobile-header__subtitle">{deviceInfo?.namaGudang || 'Crew'}</div>
+          </div>
         </div>
-        <nav style={{ display: 'flex', gap: 8 }}>
-          <NavLink to="/crew" end style={TAB_STYLE}>Ambil Barang</NavLink>
-          <NavLink to="/crew/masuk" style={TAB_STYLE}>Barang Masuk</NavLink>
-        </nav>
-      </div>
-      {/* Outlet SENGAJA gak dibungkus div .konten di sini — child page (AmbilBarang,
-          BarangMasukCrew) masing-masing punya .konten + .tombol-utama-bawah
-          sendiri sebagai saudara langsung, biar tombol sticky di bawah kerja
-          bener (butuh jadi flex child langsung dari .layar, bukan ketumpuk
-          di dalam .konten). */}
-      <Outlet />
+        <div className="mobile-header__action" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            onClick={() => navigate('/crew/notifikasi')}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              position: 'relative', padding: '4px 8px',
+              fontSize: 18, color: 'var(--warna-arang)',
+            }}
+          >
+            🔔
+            {jumlahNotif > 0 && (
+              <span style={{
+                position: 'absolute', top: 0, right: 0,
+                background: 'var(--warna-bahaya)', color: 'white',
+                fontSize: 9, fontWeight: 700, borderRadius: 8,
+                padding: '1px 4px', minWidth: 14, textAlign: 'center',
+              }}>
+                {jumlahNotif > 9 ? '9+' : jumlahNotif}
+              </span>
+            )}
+          </button>
+          <button className="mobile-header__logout" onClick={handleLogout}>
+            Keluar
+          </button>
+        </div>
+      </header>
+
+      <main className="crew-content">
+        <Outlet />
+      </main>
+
+      <BottomNav role="crew" />
     </div>
   );
 }

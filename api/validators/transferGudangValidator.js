@@ -41,13 +41,13 @@ async function validasiSebelumKirim(client, { itemId, gudangAsalId, gudangTujuan
  * Validasi sebelum "Terima" transfer (5.4, langkah 2/2):
  * - transfer harus ada dan berstatus 'dikirim' (belum diterima, cegah double receive)
  * - admin yang menerima punya akses ke gudang tujuan
- * - foto bukti terima wajib
+ * - foto bukti terima wajib, kecuali konfirmasi dilakukan Owner
  *
  * Row di-lock (`FOR UPDATE`) supaya dua orang gak bisa nge-klik "terima"
  * berbarengan untuk transfer yang sama.
  */
-async function validasiSebelumTerima(client, { id, diterimaOlehUserId, fotoBuktiTerimaUrl }) {
-  if (!fotoBuktiTerimaUrl || fotoBuktiTerimaUrl.trim().length === 0) {
+async function validasiSebelumTerima(client, { id, diterimaOlehUserId, diterimaOlehRole, fotoBuktiTerimaUrl }) {
+  if (diterimaOlehRole !== 'owner' && (!fotoBuktiTerimaUrl || fotoBuktiTerimaUrl.trim().length === 0)) {
     throw new AppError('Foto bukti terima wajib diunggah.', 400, 'FOTO_BUKTI_WAJIB');
   }
 

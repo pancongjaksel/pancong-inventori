@@ -1,3 +1,11 @@
+/**
+ * @deprecated Sistem barang-masuk single-item lama. Digantikan oleh sistem
+ * nota multi-item (barangMasukNotaService.js / barangMasukNotaValidator.js /
+ * routes/barangMasukNota.js) sejak Agustus 2026. Tabel transaksi_masuk kosong
+ * (0 baris, terkonfirmasi 2026-08-14) — tidak ada data historis yang bergantung
+ * di sini. Tidak ada UI yang mengarah ke sini (orphan backend-only). Dipertahankan
+ * untuk sementara, aman untuk dihapus di masa depan jika dikonfirmasi ulang.
+ */
 const { AppError } = require('../errors/AppError');
 const { validasiAksesGudangAdmin } = require('./aksesGudangValidator');
 
@@ -25,43 +33,28 @@ async function validasiInputAdmin(client, { userId, gudangId }) {
 }
 
 /**
- * Validasi input oleh Crew (5.1b) — device based, hasilnya "menunggu verifikasi".
- * - device harus aktif dan memang terdaftar di gudang_id yang dipilih
+ * Validasi input oleh Crew (5.1b) — sesi based (redesign: QR = akses,
+ * gudangId & nama datang dari token yang udah diverifikasi signature-nya
+ * di requireDevice, gak ada lagi row device buat dicek ulang).
  * - gudang harus bertipe 'serving' (Produksi tidak punya form crew — mirror
  *   trigger trg_validasi_device_bukan_produksi, dicek lagi di sini biar
  *   pesannya rapi di app layer)
  * - nama crew wajib diisi
  */
-async function validasiInputCrew(client, { deviceId, gudangId, namaCrewInput }) {
+async function validasiInputCrew(client, { gudangId, namaCrewInput }) {
   if (!namaCrewInput || namaCrewInput.trim().length === 0) {
     throw new AppError('Nama crew wajib diisi.', 400, 'NAMA_CREW_KOSONG');
   }
 
-  const { rows } = await client.query(
-    `SELECT d.id, d.aktif, d.gudang_id, g.tipe AS tipe_gudang, g.nama AS nama_gudang
-     FROM device_gudang d
-     JOIN gudang g ON g.id = d.gudang_id
-     WHERE d.id = $1`,
-    [deviceId]
-  );
-  const device = rows[0];
+  const { rows } = await client.query('SELECT id, tipe, nama FROM gudang WHERE id = $1', [gudangId]);
+  const gudang = rows[0];
 
-  if (!device) {
-    throw new AppError(`Device tidak ditemukan (id=${deviceId}).`, 404, 'DEVICE_TIDAK_DITEMUKAN');
+  if (!gudang) {
+    throw new AppError(`Gudang tidak ditemukan (id=${gudangId}).`, 404, 'GUDANG_TIDAK_DITEMUKAN');
   }
-  if (!device.aktif) {
-    throw new AppError('Device ini sudah tidak aktif, hubungi admin.', 403, 'DEVICE_TIDAK_AKTIF');
-  }
-  if (device.gudang_id !== gudangId) {
+  if (gudang.tipe === 'hub_admin_only') {
     throw new AppError(
-      `Device ini terdaftar di gudang lain, tidak bisa input Barang Masuk untuk gudang_id=${gudangId}.`,
-      400,
-      'DEVICE_GUDANG_TIDAK_SESUAI'
-    );
-  }
-  if (device.tipe_gudang === 'hub_admin_only') {
-    throw new AppError(
-      `Gudang "${device.nama_gudang}" adalah hub admin-only — barang masuk di sini hanya bisa diinput Admin.`,
+      `Gudang "${gudang.nama}" adalah hub admin-only — barang masuk di sini hanya bisa diinput Admin.`,
       403,
       'GUDANG_ADMIN_ONLY'
     );

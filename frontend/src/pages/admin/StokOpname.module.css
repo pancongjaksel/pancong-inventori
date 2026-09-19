@@ -1,0 +1,317 @@
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.container h1 {
+  font-size: 20px;
+  margin: 0 0 20px;
+}
+
+.error {
+  background: #FBEAE9;
+  color: var(--warna-bahaya);
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.success {
+  background: #E9F3ED;
+  color: var(--warna-sukses);
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.formSection {
+  background: white;
+  border-radius: var(--radius);
+  padding: 16px;
+  border: 1px solid var(--warna-garis);
+  margin-bottom: 20px;
+}
+
+.formGroup {
+  margin-bottom: 18px;
+}
+
+.formGroup:last-child {
+  margin-bottom: 0;
+}
+
+.formGroup label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--warna-abu);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.toggleGroup {
+  display: flex;
+  gap: 8px;
+}
+
+.toggleBtn {
+  flex: 1;
+  height: var(--tinggi-tombol);
+  border-radius: var(--radius);
+  border: 1.5px solid var(--warna-garis);
+  background: transparent;
+  color: var(--warna-arang);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.active {
+  background: var(--warna-karamel);
+  border-color: var(--warna-karamel);
+  color: var(--warna-krim);
+}
+
+.select,
+.input {
+  width: 100%;
+  height: var(--tinggi-tombol);
+  padding: 0 16px;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--warna-garis);
+  background: white;
+  color: var(--warna-arang);
+}
+
+.select:focus,
+.input:focus {
+  outline: none;
+  border-color: var(--warna-karamel);
+}
+
+.hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--warna-abu);
+}
+
+.tableSection {
+  margin-bottom: 20px;
+  overflow-x: auto;
+}
+
+.tableSection h2 {
+  font-size: 16px;
+  margin: 0 0 12px;
+}
+
+.table {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+  background: white;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--warna-garis);
+}
+
+.table th,
+.table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--warna-garis);
+  font-size: 14px;
+}
+
+.table th {
+  background: var(--warna-krim-redup);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--warna-abu);
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.kode {
+  font-family: var(--font-angka);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.satuan {
+  color: var(--warna-abu);
+  white-space: nowrap;
+}
+
+.inputCell {
+  width: 100px;
+  height: 40px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1.5px solid var(--warna-garis);
+  font-family: var(--font-angka);
+}
+
+.inputCell:focus {
+  outline: none;
+  border-color: var(--warna-karamel);
+}
+
+.buttonGroup {
+  position: sticky;
+  bottom: 0;
+  padding: 16px 0 calc(16px + var(--jarak-aman-bawah));
+  background: linear-gradient(to top, var(--warna-krim) 60%, transparent);
+}
+
+.btn {
+  width: 100%;
+  height: var(--tinggi-tombol);
+  border-radius: var(--radius);
+  border: none;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--warna-karamel);
+  color: var(--warna-krim);
+  transition: transform 0.08s ease, opacity 0.15s ease;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn:not(:disabled):hover {
+  background: var(--warna-karamel-gelap);
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 15px;
+  cursor: pointer;
+}
+.checkboxLabel input {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+.selisihBeda {
+  color: var(--warna-bahaya);
+  font-weight: 600;
+  font-family: var(--font-angka);
+}
+.selisihSama {
+  color: var(--warna-abu);
+  font-family: var(--font-angka);
+}
+.ringkasanSubmit {
+  background: var(--warna-krim-redup);
+  border: 1px solid var(--warna-garis);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+.ringkasanSubmit ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+.ringkasanSubmit li {
+  margin-bottom: 4px;
+}
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 16px;
+}
+.dialog {
+  background: white;
+  border-radius: var(--radius);
+  padding: 20px;
+  max-width: 480px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.dialog h3 {
+  margin: 0 0 8px;
+  font-size: 17px;
+}
+.daftarKonfirmasi {
+  margin: 12px 0;
+  padding-left: 18px;
+  font-size: 14px;
+}
+.daftarKonfirmasi li {
+  margin-bottom: 6px;
+}
+.dialogTombol {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+.btnBatal {
+  flex: 1;
+  height: var(--tinggi-tombol);
+  border-radius: var(--radius);
+  border: 1.5px solid var(--warna-garis);
+  background: transparent;
+  color: var(--warna-arang);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.dialogTombol .btn {
+  flex: 1;
+}
+
+.pecahanGroup {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.inputPecahan {
+  width: 64px;
+  height: 40px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 1.5px solid var(--warna-garis);
+  font-family: var(--font-angka);
+}
+.inputPecahan:focus {
+  outline: none;
+  border-color: var(--warna-karamel);
+}
+.pecahanPlus {
+  color: var(--warna-abu);
+  font-size: 13px;
+}
+.pecahanHasil {
+  display: block;
+  width: 100%;
+  color: var(--warna-abu);
+  font-size: 12px;
+  margin-top: 2px;
+}

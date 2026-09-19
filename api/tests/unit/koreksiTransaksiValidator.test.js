@@ -3,10 +3,10 @@ const assert = require('node:assert/strict');
 const { TABEL_VALID } = require('../../validators/koreksiTransaksiValidator');
 
 describe('koreksiTransaksiValidator.TABEL_VALID', () => {
-  test('cuma 3 tabel yang boleh dikoreksi', () => {
+  test('empat tabel transaksi yang didukung boleh dikoreksi', () => {
     assert.deepEqual(
       [...TABEL_VALID].sort(),
-      ['sesi_pengambilan_crew', 'transaksi_masuk', 'transfer_gudang'].sort()
+      ['sesi_pengambilan_crew', 'transaksi_masuk', 'transaksi_masuk_nota', 'transfer_gudang'].sort()
     );
   });
 

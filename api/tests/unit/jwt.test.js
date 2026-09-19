@@ -21,13 +21,16 @@ describe('jwt - token user (Admin/Owner)', () => {
 });
 
 describe('jwt - token device (Crew)', () => {
-  test('payload device cocok pas diverifikasi balik', () => {
-    const token = buatTokenDevice({ deviceId: 10, gudangId: 2, tokenVersi: 1 });
+  test('payload crew yang dipakai saat ini cocok pas diverifikasi balik', () => {
+    const token = buatTokenDevice({ gudangId: 2, nama: 'Budi', crewId: 10, crewSessionId: 3 });
     const payload = verifikasiToken(token);
 
     assert.equal(payload.tipe, 'device');
-    assert.equal(payload.deviceId, 10);
     assert.equal(payload.gudangId, 2);
+    assert.equal(payload.nama, 'Budi');
+    assert.equal(payload.crewId, 10);
+    assert.equal(payload.crewSessionId, 3);
+    assert.equal(payload.deviceId, undefined);
   });
 
   test('token user gak bisa dipakai seolah-olah token device (tipe beda)', () => {

@@ -4,20 +4,9 @@ const { verifikasiToken } = require('../utils/jwt');
 function ambilBearerToken(req) {
   const header = req.headers.authorization;
   if (header && header.startsWith('Bearer ')) return header.slice(7);
-  // Fallback ke cookie httpOnly 'session' (di-set saat login, lihat
-  // routes/auth.js) — memudahkan pemakaian dari browser admin panel tanpa
-  // frontend harus nyimpen token manual di JS-accessible storage.
   return req.cookies?.session ?? null;
 }
 
-/**
- * Middleware buat route Admin/Owner. Verifikasi JWT, lalu CROSS-CHECK ke
- * database (aktif=true & token_versi cocok) — bukan cuma percaya isi token,
- * karena JWT gak otomatis tau kalau user dinonaktifkan atau diminta logout
- * paksa (ganti password dll) setelah token itu diterbitkan.
- *
- * Sukses -> req.user = { id, nama, role }
- */
 async function requireAdmin(req, res, next) {
   const token = ambilBearerToken(req);
   if (!token) {
@@ -40,7 +29,7 @@ async function requireAdmin(req, res, next) {
       return res.status(401).json({
         sukses: false,
         kode: 'SESI_KADALUARSA',
-        pesan: 'Sesi sudah tidak berlaku (mis. password diganti atau akun dinonaktifkan), silakan login ulang.',
+        pesan: 'Sesi sudah tidak berlaku, silakan login ulang.',
       });
     }
     if (user.role !== 'admin' && user.role !== 'owner') {
@@ -55,69 +44,106 @@ async function requireAdmin(req, res, next) {
 }
 
 /**
- * Middleware buat route Crew (device-based, bukan login personal). Token
- * dari header `X-Device-Token` (disimpan browser device di localStorage
- * setelah setup QR — lihat deviceGudangService.setupDeviceDariQr).
- *
- * Sukses -> req.device = { id, gudangId }
+ * Crew session — TIDAK ADA LAGI DB lookup device. QR token (HMAC) sudah
+ * jadi kontrol akses saat setup; sesudah itu token JWT ini cukup divalidasi
+ * signature-nya doang. `nama` (siapa yang pegang HP) & `gudangId` (gudang
+ * mana) datang langsung dari payload token, diisi user sendiri saat submit
+ * form nama pertama kali.
  */
 async function requireDevice(req, res, next) {
   const token = req.headers['x-device-token'];
   if (!token) {
     return res.status(401).json({
       sukses: false,
-      kode: 'DEVICE_BELUM_SETUP',
-      pesan: 'Device ini belum di-setup. Minta admin scan QR gudang di device ini dulu.',
+      kode: 'SESI_BELUM_DIISI',
+      pesan: 'Isi nama kamu dulu lewat scan QR gudang.',
     });
   }
 
   const payload = verifikasiToken(token);
-  if (!payload || payload.tipe !== 'device') {
-    return res.status(401).json({ sukses: false, kode: 'DEVICE_TOKEN_TIDAK_VALID', pesan: 'Token device tidak valid, setup ulang lewat scan QR.' });
+  if (!payload || payload.tipe !== 'device' || payload.role === 'admin_gudang' || !payload.gudangId) {
+    return res.status(401).json({ sukses: false, kode: 'SESI_TIDAK_VALID', pesan: 'Sesi tidak valid, scan ulang QR gudang.' });
+  }
+
+  req.device = { id: payload.deviceId, gudangId: payload.gudangId, nama: payload.nama, crewId: payload.crewId, crewSessionId: payload.crewSessionId };
+  next();
+}
+
+/**
+ * Admin Gudang session — sama seperti requireDevice, tanpa DB lookup device.
+ * Tapi TETAP butuh req.user.id valid (FK ke tabel users, dipakai di
+ * dicatat_oleh_user_id pada stok_opname dkk) — jadi query 1x ke akun
+ * bersama "Admin Gudang" yang statis (bukan per-device lagi).
+ */
+async function requireAdminGudang(req, res, next) {
+  const token = req.headers['x-device-token'];
+  if (!token) {
+    return res.status(401).json({
+      sukses: false,
+      kode: 'SESI_BELUM_DIISI',
+      pesan: 'Isi nama kamu dulu lewat scan QR Admin Gudang.',
+    });
+  }
+
+  const payload = verifikasiToken(token);
+  if (!payload || payload.tipe !== 'device' || payload.role !== 'admin_gudang') {
+    return res.status(401).json({ sukses: false, kode: 'SESI_TIDAK_VALID', pesan: 'Sesi tidak valid atau bukan sesi Admin Gudang.' });
   }
 
   try {
-    const { rows } = await pool.query(
-      'SELECT id, gudang_id, aktif, token_versi FROM device_gudang WHERE id = $1',
-      [payload.deviceId]
+    const { rows: userRows } = await pool.query(
+      `SELECT id, role FROM users WHERE role = 'admin_gudang' AND email = 'admin-gudang@pancongjaksel.internal'`
     );
-    const device = rows[0];
-
-    if (!device || !device.aktif || device.token_versi !== payload.tokenVersi) {
-      return res.status(403).json({
-        sukses: false,
-        kode: 'DEVICE_TIDAK_AKTIF',
-        pesan: 'Device ini sudah dicabut aksesnya oleh admin (mis. HP hilang), minta setup ulang.',
-      });
+    const user = userRows[0];
+    if (!user) {
+      return res.status(500).json({ sukses: false, kode: 'USER_NOT_FOUND', pesan: 'User Admin Gudang tidak ditemukan di database.' });
     }
 
-    req.device = { id: device.id, gudangId: device.gudang_id };
+    req.user = { id: user.id, nama: payload.nama, role: user.role };
+    req.device = { nama: payload.nama };
     next();
   } catch (err) {
     next(err);
   }
 }
 
-/**
- * Middleware buat endpoint BACA yang boleh diakses admin ATAU device
- * (mis. daftar item, daftar outlet — informasinya sendiri gak sensitif,
- * yang penting device/user-nya valid). Coba admin dulu, kalau gak ada
- * Bearer token/cookie, coba device. Gagal dua-duanya -> 401.
- *
- * Sukses -> req.user ATAU req.device keisi (salah satu), gak dua-duanya.
- */
+async function requireAdminOrGudang(req, res, next) {
+  const adaBearer = ambilBearerToken(req);
+  const adaDeviceToken = req.headers['x-device-token'];
+
+  if (adaBearer) return requireAdmin(req, res, next);
+  if (adaDeviceToken) {
+    const payload = verifikasiToken(adaDeviceToken);
+    if (payload && payload.tipe === 'device' && payload.role === 'admin_gudang') {
+      return requireAdminGudang(req, res, next);
+    }
+  }
+
+  return res.status(401).json({
+    sukses: false,
+    kode: 'BELUM_AUTENTIKASI',
+    pesan: 'Login sebagai Admin/Owner atau isi nama sesi Admin Gudang dulu.',
+  });
+}
+
 async function requireAnyAuth(req, res, next) {
   const adaBearer = ambilBearerToken(req);
   const adaDeviceToken = req.headers['x-device-token'];
 
   if (adaBearer) return requireAdmin(req, res, next);
-  if (adaDeviceToken) return requireDevice(req, res, next);
+  if (adaDeviceToken) {
+    const payload = verifikasiToken(adaDeviceToken);
+    if (payload && payload.tipe === 'device' && payload.role === 'admin_gudang') {
+      return requireAdminGudang(req, res, next);
+    }
+    return requireDevice(req, res, next);
+  }
 
   return res.status(401).json({
     sukses: false,
     kode: 'BELUM_AUTENTIKASI',
-    pesan: 'Login (Admin) atau setup device (Crew) dulu sebelum mengakses ini.',
+    pesan: 'Login dulu sebelum mengakses ini.',
   });
 }
 
-module.exports = { requireAdmin, requireDevice, requireAnyAuth };
+module.exports = { requireAdmin, requireDevice, requireAdminGudang, requireAdminOrGudang, requireAnyAuth };

@@ -33,6 +33,7 @@ async function updateItem(id, fields) {
     reorderPoint: 'reorder_point',
     gudangDefaultId: 'gudang_default_id',
     catatanMigrasi: 'catatan_migrasi',
+    harga: 'harga',
   };
 
   const setClauses = [];

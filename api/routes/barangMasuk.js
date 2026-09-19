@@ -1,6 +1,14 @@
+/**
+ * @deprecated Sistem barang-masuk single-item lama. Digantikan oleh sistem
+ * nota multi-item (barangMasukNotaService.js / barangMasukNotaValidator.js /
+ * routes/barangMasukNota.js) sejak Agustus 2026. Tabel transaksi_masuk kosong
+ * (0 baris, terkonfirmasi 2026-08-14) — tidak ada data historis yang bergantung
+ * di sini. Tidak ada UI yang mengarah ke sini (orphan backend-only). Dipertahankan
+ * untuk sementara, aman untuk dihapus di masa depan jika dikonfirmasi ulang.
+ */
 const express = require('express');
 const { pool } = require('../db/pool');
-const { requireAdmin, requireDevice } = require('../middleware/authMiddleware');
+const { requireAdmin, requireDevice, requireAdminOrGudang } = require('../middleware/authMiddleware');
 const {
   buatBarangMasukAdmin,
   buatBarangMasukCrew,
@@ -14,7 +22,7 @@ const router = express.Router();
  * Default nampilin yang 'menunggu' verifikasi (antrean Admin). Bisa filter
  * status lain (terverifikasi/direvisi/ditolak) lewat query param.
  */
-router.get('/', requireAdmin, async (req, res, next) => {
+router.get('/', requireAdminOrGudang, async (req, res, next) => {
   try {
     const status = req.query.status || 'menunggu';
     const { rows } = await pool.query(
@@ -55,7 +63,6 @@ router.post('/crew', requireDevice, async (req, res, next) => {
     const hasil = await buatBarangMasukCrew({
       ...req.body,
       gudangId: req.device.gudangId,
-      deviceId: req.device.id,
     });
     res.status(201).json({ sukses: true, data: hasil });
   } catch (err) {
@@ -67,7 +74,7 @@ router.post('/crew', requireDevice, async (req, res, next) => {
  * PATCH /api/barang-masuk/:id/verifikasi
  * Body: { aksi: 'setujui' | 'revisi' | 'tolak', catatan?, jumlahRevisi? }
  */
-router.patch('/:id/verifikasi', requireAdmin, async (req, res, next) => {
+router.patch('/:id/verifikasi', requireAdminOrGudang, async (req, res, next) => {
   try {
     const hasil = await verifikasiBarangMasuk({
       id: Number(req.params.id),

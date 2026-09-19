@@ -8,7 +8,7 @@
 
 set -euo pipefail
 
-NAMA_CONTAINER_POSTGRES="pancong-jaksel-ims-postgres-1"
+NAMA_CONTAINER_POSTGRES="pancong_postgres"
 NAMA_DATABASE="pancong_inventori"
 FILE_BACKUP="${1:-}"
 
@@ -28,5 +28,5 @@ if [ "$KONFIRMASI" != "ya" ]; then
 fi
 
 echo "Restore ke database '$NAMA_DATABASE'..."
-gunzip -c "$FILE_BACKUP" | docker exec -i "$NAMA_CONTAINER_POSTGRES" psql -U postgres -d "$NAMA_DATABASE"
+gunzip -c "$FILE_BACKUP" | docker exec -i "$NAMA_CONTAINER_POSTGRES" psql -U pancong_user -d "$NAMA_DATABASE"
 echo "Restore selesai."

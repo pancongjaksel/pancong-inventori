@@ -1,5 +1,4 @@
 const jwt = require('jsonwebtoken');
-
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
   console.warn(
@@ -8,13 +7,11 @@ if (!JWT_SECRET) {
   );
 }
 
-// Token sesi Admin/Owner — umur pendek (8 jam), harus login ulang tiap hari kerja.
 const USER_TOKEN_EXPIRY = '8h';
-
-// Token Device — umur PANJANG (dianggap "dipasangkan" permanen sampai admin
-// cabut manual lewat token_versi, bukan lewat expiry alami), karena device
-// ini nempel fisik di gudang dan gak realistis suruh Admin login ulang tiap
-// beberapa jam di HP yang dipakai gantian crew.
+// Token sesi crew/admin-gudang — umur PANJANG, gak ada lagi row device di
+// database buat divalidasi ulang (redesign: QR = akses, nama diisi user
+// sendiri tiap butuh, tersimpan di localStorage HP-nya). Revoke akses cuma
+// bisa total lewat rotate DEVICE_QR_SECRET, bukan per-device lagi.
 const DEVICE_TOKEN_EXPIRY = '3650d'; // ~10 tahun
 
 function buatTokenUser({ userId, role, tokenVersi }) {
@@ -23,13 +20,18 @@ function buatTokenUser({ userId, role, tokenVersi }) {
   });
 }
 
-function buatTokenDevice({ deviceId, gudangId, tokenVersi }) {
-  return jwt.sign({ tipe: 'device', deviceId, gudangId, tokenVersi }, JWT_SECRET, {
+/**
+ * Token sesi crew/admin-gudang. TIDAK ada lagi deviceId/tokenVersi — token
+ * ini gak divalidasi ulang ke database sama sekali, cukup signature JWT.
+ * `nama` = nama orang yang diisi manual (bukan device), `role` = 'admin_gudang'
+ * atau undefined (crew biasa), `gudangId` cuma relevan buat crew.
+ */
+function buatTokenDevice({ gudangId, role, nama, crewId, crewSessionId }) {
+  return jwt.sign({ tipe: 'device', gudangId: gudangId ?? null, role: role ?? null, nama, crewId: crewId ?? null, crewSessionId: crewSessionId ?? null }, JWT_SECRET, {
     expiresIn: DEVICE_TOKEN_EXPIRY,
   });
 }
 
-/** Return payload decoded kalau valid, atau null kalau invalid/expired. */
 function verifikasiToken(token) {
   try {
     return jwt.verify(token, JWT_SECRET);

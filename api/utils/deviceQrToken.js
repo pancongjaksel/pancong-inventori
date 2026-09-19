@@ -60,4 +60,37 @@ function verifikasiTokenQrGudang(token) {
   return Number.isInteger(gudangId) ? gudangId : null;
 }
 
-module.exports = { buatTokenQrGudang, verifikasiTokenQrGudang };
+/**
+ * Token QR untuk Admin Gudang — beda dari QR gudang biasa, gak terikat ke
+ * gudang_id manapun (identitas "Admin Gudang" itu satu akun bersama, bukan
+ * per-gudang). Payload-nya konstan ('admin-gudang'), keamanannya murni dari
+ * signature HMAC — tanpa tau SECRET, gak ada cara bikin token yang valid.
+ */
+function buatTokenQrAdminGudang() {
+  const payload = 'admin-gudang';
+  const signature = crypto.createHmac('sha256', SECRET || '').update(payload).digest('hex');
+  return `${payload}.${signature}`;
+}
+
+/** Verifikasi token QR Admin Gudang. Return true kalau valid, false kalau rusak/dipalsu. */
+function verifikasiTokenQrAdminGudang(token) {
+  if (typeof token !== 'string' || !token.includes('.')) return false;
+
+  const [payload, signature] = token.split('.');
+  const signatureSeharusnya = crypto.createHmac('sha256', SECRET || '').update(payload).digest('hex');
+
+  const bufA = Buffer.from(signature, 'hex');
+  const bufB = Buffer.from(signatureSeharusnya, 'hex');
+  if (bufA.length !== bufB.length || !crypto.timingSafeEqual(bufA, bufB)) {
+    return false;
+  }
+
+  return payload === 'admin-gudang';
+}
+
+module.exports = {
+  buatTokenQrGudang,
+  verifikasiTokenQrGudang,
+  buatTokenQrAdminGudang,
+  verifikasiTokenQrAdminGudang,
+};

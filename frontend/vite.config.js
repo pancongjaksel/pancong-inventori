@@ -10,6 +10,14 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      // /uploads/* dilayani langsung sama backend (foto bukti nota), BUKAN
+      // bagian dari SPA — tanpa ini, klik link foto bukti/preview upload
+      // ke-intercept sama NavigationRoute default (semua request navigasi
+      // di-fallback ke index.html), jadi selalu blank kayak buka halaman app
+      // yang salah, meski server-side (nginx/express.static) udah bener.
+      workbox: {
+        navigateFallbackDenylist: [/^\/uploads\//],
+      },
       manifest: {
         name: 'Inventori Pancong Jaksel',
         short_name: 'Inventori PJ',

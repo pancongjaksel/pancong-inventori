@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+  checklist-api:
+    build: .
+    container_name: pancong-checklist-api
+    ports:
+      - "127.0.0.1:3001:3001"
+    env_file:
+      - .env
+    networks:
+      - pancong_net
+    restart: unless-stopped
+
+networks:
+  pancong_net:
+    external: true
+    name: ${PANCONG_NETWORK_NAME}
