@@ -20,6 +20,7 @@ const uploadRouter = require('./routes/upload');
 const opnameOutletRouter = require('./routes/opnameOutlet');
 const notifikasiRouter = require('./routes/notifikasi');
 const dashboardRouter = require('./routes/dashboard');
+const { pool } = require('./db/pool');
 const { errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -58,6 +59,17 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(cookieParser());
+
+// Dipakai monitoring internal. Status 200 berarti proses API dan koneksi
+// database aktif; tidak memaparkan data, versi, atau detail infrastruktur.
+app.get('/api/healthz', async (_req, res) => {
+  try {
+    await pool.query('SELECT 1');
+    res.status(200).json({ status: 'ok' });
+  } catch {
+    res.status(503).json({ status: 'unavailable' });
+  }
+});
 
 app.use('/api/auth', authRouter);
 app.use('/api/sesi-pengambilan-crew', sesiPengambilanCrewRouter);

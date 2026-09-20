@@ -5,7 +5,7 @@ set -eu
 API_CONTAINER="pancong-inventori-api"
 FRONTEND_CONTAINER="pancong-inventori-frontend"
 POSTGRES_CONTAINER="${PANCONG_POSTGRES_CONTAINER:-$(docker ps --format '{{.Names}}' | awk '/_pancong_postgres$/ { print; exit }')}"
-BACKUP_DIR="$HOME/backup-pancong-inventori"
+BACKUP_DIR="${PANCONG_BACKUP_DIR:-/home/ubuntu/backup-pancong-inventori}"
 STATUS_FILE="$BACKUP_DIR/health-status.txt"
 CONFIG_FILE="$HOME/.config/pancong-monitoring.env"
 RCLONE_BIN="${RCLONE_BIN:-/usr/local/bin/rclone}"
@@ -34,8 +34,8 @@ check_running "$API_CONTAINER"
 check_running "$FRONTEND_CONTAINER"
 [ -n "$POSTGRES_CONTAINER" ] && check_running "$POSTGRES_CONTAINER" || failures="$failures postgres-container"
 
-api_status=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 http://127.0.0.1:3000/api/auth/me || true)
-[ "$api_status" != "000" ] || failures="$failures api-unreachable"
+api_status=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 http://127.0.0.1:3000/api/healthz || true)
+[ "$api_status" = "200" ] || failures="$failures api-health:${api_status}"
 
 disk_percent=$(df -P / | awk 'NR==2 { gsub(/%/, "", $5); print $5 }')
 [ "$disk_percent" -lt "$MAX_DISK_PERCENT" ] || failures="$failures disk:${disk_percent}%"
