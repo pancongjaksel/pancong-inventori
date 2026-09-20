@@ -24,6 +24,10 @@ const { errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
 
+// API hanya dibuka melalui reverse proxy pada host. Percayai satu hop proxy
+// supaya rate limiter memakai IP pengguna, bukan IP loopback proxy.
+app.set('trust proxy', 1);
+
 // FRONTEND_URL boleh diisi lebih dari satu, dipisah koma — berguna pas dev
 // karena Vite kadang otomatis pindah port (5173 -> 5174 dst) kalau port
 // defaultnya lagi kepakai proses lain.

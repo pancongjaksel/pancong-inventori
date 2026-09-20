@@ -1,6 +1,7 @@
 const express = require('express');
 const { login, cabutSemuaSesi } = require('../services/authService');
 const { requireAdmin } = require('../middleware/authMiddleware');
+const { batasiLogin } = require('../middleware/rateLimiters');
 
 const router = express.Router();
 
@@ -18,7 +19,7 @@ const COOKIE_OPTIONS = {
  * browser admin panel, lebih aman dari XSS karena JS gak bisa baca cookie
  * httpOnly). Middleware requireAdmin nerima keduanya.
  */
-router.post('/login', async (req, res, next) => {
+router.post('/login', batasiLogin, async (req, res, next) => {
   try {
     const hasil = await login(req.body);
     res.cookie('session', hasil.token, COOKIE_OPTIONS);
