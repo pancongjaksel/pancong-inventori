@@ -71,9 +71,6 @@ export default function NotifikasiPengambilan() {
     requestAnimationFrame(() => {
       if (!bellRef.current) { openRef.current = false; return; }
       const rect = bellRef.current.getBoundingClientRect();
-      console.log('=== BELL DEBUG ===');
-      console.log('rect:', JSON.stringify({ x: rect.x, y: rect.y, left: rect.left, right: rect.right, width: rect.width }));
-      console.log('window.innerWidth:', window.innerWidth);
       const PANEL_W = 320;
       const MARGIN = 8;
       const sidebarEl = document.querySelector('.admin-sidebar');
@@ -84,19 +81,8 @@ export default function NotifikasiPengambilan() {
         left = window.innerWidth - PANEL_W - MARGIN;
       }
       left = Math.max(left, MARGIN);
-      console.log('panelPos akan di-set:', { top: rect.bottom + 8, left });
       setPanelPos({ top: rect.bottom + 8, left });
       setPanelTerbuka(true);
-      setTimeout(() => {
-        const panel = document.querySelector('[data-notif-panel]');
-        if (panel) {
-          const s = panel.getBoundingClientRect();
-          console.log('panel rect setelah render:', JSON.stringify({ x: s.x, left: s.left, width: s.width }));
-          console.log('panel computed style — position:', window.getComputedStyle(panel).position, '| left:', window.getComputedStyle(panel).left);
-        } else {
-          console.log('panel element tidak ditemukan di DOM');
-        }
-      }, 100);
     });
   }
 
