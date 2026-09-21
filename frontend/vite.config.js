@@ -6,6 +6,19 @@ import { VitePWA } from 'vite-plugin-pwa';
 // beneran (queue submit pas sinyal lemah) itu Fase 3 di PRD, belum di sini —
 // lihat ROADMAP Tahap 3.4.
 export default defineConfig({
+  build: {
+    rollupOptions: {
+      output: {
+        // Pisahkan library besar yang dipakai lintas halaman dari kode aplikasi.
+        // Halaman yang berubah tidak lagi memaksa browser mengunduh ulang React
+        // atau pemindai QR, terutama membantu perangkat crew di koneksi seluler.
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'qr-vendor': ['html5-qrcode'],
+        },
+      },
+    },
+  },
   plugins: [
     react(),
     VitePWA({
