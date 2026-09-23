@@ -121,12 +121,12 @@ export default function RiwayatTransferDetail() {
           <InfoRow label="Dari Gudang" value={transfer.nama_gudang_asal} />
           <InfoRow label="Ke Gudang" value={transfer.nama_gudang_tujuan} />
           <InfoRow label="Dikirim Oleh" value={transfer.dikirim_oleh_nama} />
-          <InfoRow label="Tanggal Kirim" value={transfer.tanggal_kirim ? new Date(transfer.tanggal_kirim).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'} />
+          <InfoRow label="Waktu Kirim" value={waktuFormatted(transfer.tanggal_kirim)} />
           {transfer.diterima_oleh_nama && (
             <InfoRow label="Diterima Oleh" value={transfer.diterima_oleh_nama} />
           )}
           {transfer.tanggal_terima && (
-            <InfoRow label="Tanggal Terima" value={new Date(transfer.tanggal_terima).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} />
+            <InfoRow label="Waktu Terima" value={waktuFormatted(transfer.tanggal_terima)} />
           )}
         </div>
 

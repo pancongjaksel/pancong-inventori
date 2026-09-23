@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, ApiError } from '../api/client';
 
+const PAGE_SIZE = 50;
+
 function waktuFormatted(iso) {
   const d = new Date(iso);
   const sekarang = new Date();
@@ -33,14 +35,20 @@ export default function CrewRiwayat() {
   const [filter, setFilter] = useState('semua');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
 
-  const muat = useCallback(async (f) => {
+  const muat = useCallback(async (f, mulai = 0, reset = true) => {
     setLoading(true);
     setError(null);
     try {
-      const param = f === 'hari-ini' ? '?filter=hari-ini' : f === '7-hari' ? '?filter=7-hari' : '';
-      const data = await api.get(`/sesi-pengambilan-crew/saya${param}`);
-      setSesiList(Array.isArray(data) ? data : []);
+      const params = new URLSearchParams({ filter: f, limit: String(PAGE_SIZE), offset: String(mulai) });
+      // Backend mengambil gudang dari token crew, bukan dari browser.
+      const data = await api.get(`/sesi-pengambilan-crew/gudang?${params}`);
+      const rows = Array.isArray(data) ? data : [];
+      setSesiList((sebelumnya) => reset ? rows : [...sebelumnya, ...rows]);
+      setOffset(mulai + rows.length);
+      setHasMore(rows.length === PAGE_SIZE);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Gagal memuat riwayat.');
     } finally {
@@ -55,8 +63,11 @@ export default function CrewRiwayat() {
       <div className="mobile-page__content" style={{ padding: 0 }}>
         {/* Header */}
         <div style={{ padding: '16px 16px 0' }}>
-          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--warna-arang)', marginBottom: 12 }}>
+          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--warna-arang)', marginBottom: 4 }}>
             Riwayat Pengambilan
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--warna-abu)', marginBottom: 12 }}>
+            Semua pengambilan di gudang ini.
           </div>
 
           {/* Filter chips */}
@@ -136,11 +147,24 @@ export default function CrewRiwayat() {
                   {sesi.nama_outlet_tujuan}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--warna-abu)' }}>
-                  {sesi.jumlah_item ?? sesi.daftar_item?.length ?? 0} item ·{' '}
-                  {Number(sesi.total_qty ?? 0).toLocaleString('id-ID')} unit total
+                  Diambil oleh {sesi.nama_crew || 'Crew'}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--warna-abu)', marginTop: 2 }}>
+                  {sesi.items?.length ?? 0} item ·{' '}
+                  {Number((sesi.items ?? []).reduce((total, item) => total + Number(item.qty || 0), 0)).toLocaleString('id-ID')} unit total
                 </div>
               </button>
             ))}
+            {hasMore && (
+              <button
+                className="tombol tombol--sekunder"
+                disabled={loading}
+                onClick={() => muat(filter, offset, false)}
+                style={{ marginTop: 4 }}
+              >
+                {loading ? 'Memuat...' : 'Muat lebih banyak'}
+              </button>
+            )}
           </div>
         )}
       </div>

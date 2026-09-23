@@ -14,6 +14,11 @@ function formatTanggal(tanggalStr) {
   return tgl.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
 }
 
+function formatWaktu(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+}
+
 export default function AmbilBarang() {
   const navigate = useNavigate();
   const [tab, setTab] = useState('ambil'); // 'ambil' | 'riwayat'
@@ -367,7 +372,7 @@ function KartuRiwayat({ sesi }) {
             {sesi.nama_crew}
           </span>
           <span style={{ color: 'var(--warna-garis)', margin: '0 6px' }}>·</span>
-          <span style={{ fontSize: 13, color: 'var(--warna-abu)' }}>{formatTanggal(sesi.tanggal)}</span>
+          <span style={{ fontSize: 13, color: 'var(--warna-abu)' }}>{formatTanggal(sesi.tanggal)} · {formatWaktu(sesi.created_at)}</span>
         </div>
 
         {/* Sub-label dibatalkan oleh */}

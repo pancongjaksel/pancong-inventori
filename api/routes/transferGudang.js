@@ -12,7 +12,28 @@ const router = express.Router();
  */
 router.get('/', requireAdminOrGudang, async (req, res, next) => {
   try {
-    const status = req.query.status || 'dikirim';
+    const { status = 'dikirim', dari, sampai, search, limit, offset } = req.query;
+    const batas = Math.min(Math.max(Number(limit) || 50, 1), 100);
+    const mulai = Math.max(Number(offset) || 0, 0);
+    const kondisi = [];
+    const params = [];
+    if (status !== 'semua') {
+      params.push(status);
+      kondisi.push(`tg.status = $${params.length}`);
+    }
+    if (dari) {
+      params.push(dari);
+      kondisi.push(`tg.tanggal_kirim >= $${params.length}::date`);
+    }
+    if (sampai) {
+      params.push(sampai);
+      kondisi.push(`tg.tanggal_kirim < ($${params.length}::date + INTERVAL '1 day')`);
+    }
+    if (search?.trim()) {
+      params.push(`%${search.trim()}%`);
+      kondisi.push(`(i.nama ILIKE $${params.length} OR ga.nama ILIKE $${params.length} OR gt.nama ILIKE $${params.length} OR uk.nama ILIKE $${params.length})`);
+    }
+    params.push(batas, mulai);
     const queryText = `
       SELECT
         tg.id, tg.jumlah, tg.status, tg.label_status, tg.status_verifikasi, tg.sumber_transaksi, tg.dibuat_oleh_role,
@@ -27,11 +48,11 @@ router.get('/', requireAdminOrGudang, async (req, res, next) => {
       JOIN gudang gt ON gt.id = tg.gudang_tujuan_id
       JOIN users uk ON uk.id = tg.dikirim_oleh_user_id
       LEFT JOIN users ut ON ut.id = tg.diterima_oleh_user_id
-      ${status === 'semua' ? '' : 'WHERE tg.status = $1'}
+      WHERE ${kondisi.length ? kondisi.join(' AND ') : 'TRUE'}
       ORDER BY tg.tanggal_kirim DESC
-      LIMIT 100
+      LIMIT $${params.length - 1} OFFSET $${params.length}
     `;
-    const { rows } = await pool.query(queryText, status === 'semua' ? [] : [status]);
+    const { rows } = await pool.query(queryText, params);
     res.status(200).json({ sukses: true, data: rows });
   } catch (err) {
     next(err);

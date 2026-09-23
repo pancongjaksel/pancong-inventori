@@ -8,6 +8,13 @@ function tanggalFormatted(tgl) {
   return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
+function waktuFormatted(iso) {
+  if (!iso) return '-';
+  return new Date(iso).toLocaleString('id-ID', {
+    day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  });
+}
+
 function StatusBadge({ label, status }) {
   const teks = label || status || '-';
   const isOk = status === 'terverifikasi';
@@ -108,8 +115,12 @@ export default function RiwayatBarangMasukDetail() {
           <InfoRow label="Sumber" value={nota.sumber} />
           <InfoRow label="Diinput Oleh" value={inputOleh} />
           <InfoRow label="Role Input" value={nota.diinput_oleh_role} />
+          <InfoRow label="Waktu Input" value={waktuFormatted(nota.created_at)} />
           {nota.diverifikasi_oleh_nama && (
             <InfoRow label="Diverifikasi Oleh" value={nota.diverifikasi_oleh_nama} />
+          )}
+          {nota.tanggal_verifikasi && (
+            <InfoRow label="Waktu Verifikasi" value={waktuFormatted(nota.tanggal_verifikasi)} />
           )}
           {nota.catatan_verifikasi && (
             <div style={{ gridColumn: '1 / -1' }}>

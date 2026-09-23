@@ -16,7 +16,7 @@ const router = express.Router();
 router.get('/', requireAdminOrGudang, async (req, res, next) => {
   try {
     const status = req.query.status || 'menunggu';
-    const hasil = await listNota(status);
+    const hasil = await listNota(status, req.query);
     res.status(200).json({ sukses: true, data: hasil });
   } catch (err) {
     next(err);

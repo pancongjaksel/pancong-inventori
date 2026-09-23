@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { api, ApiError } from '../../api/client';
 
-function tanggalFormatted(iso) {
+const PAGE_SIZE = 50;
+
+function waktuFormatted(iso) {
   if (!iso) return '-';
-  return new Date(iso).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+  return new Date(iso).toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
 function StatusBadge({ label, status }) {
@@ -23,49 +25,39 @@ function StatusBadge({ label, status }) {
 
 export default function RiwayatTransfer() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const basePath = location.pathname.startsWith('/admin-gudang') ? '/admin-gudang' : '/admin';
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [cari, setCari] = useState('');
   const [dari, setDari] = useState('');
   const [sampai, setSampai] = useState('');
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
 
-  useEffect(() => {
-    async function muat() {
+  const muat = useCallback(async (reset = false) => {
+      const mulai = reset ? 0 : offset;
       setLoading(true);
       setError(null);
       try {
-        const hasil = await api.get('/transfer-gudang?status=semua');
-        setList(Array.isArray(hasil) ? hasil : []);
+        const params = new URLSearchParams({ status: 'semua', limit: String(PAGE_SIZE), offset: String(mulai) });
+        if (cari.trim()) params.set('search', cari.trim());
+        if (dari) params.set('dari', dari);
+        if (sampai) params.set('sampai', sampai);
+        const hasil = await api.get(`/transfer-gudang?${params}`);
+        const rows = Array.isArray(hasil) ? hasil : [];
+        setList((sebelumnya) => reset ? rows : [...sebelumnya, ...rows]);
+        setOffset(mulai + rows.length);
+        setHasMore(rows.length === PAGE_SIZE);
       } catch (err) {
         setError(err instanceof ApiError ? err.message : 'Gagal memuat riwayat transfer.');
       } finally {
         setLoading(false);
       }
-    }
-    muat();
-  }, []);
+  }, [cari, dari, sampai, offset]);
 
-  const filtered = list.filter((row) => {
-    if (cari) {
-      const q = cari.toLowerCase();
-      if (
-        !row.nama_item?.toLowerCase().includes(q) &&
-        !row.nama_gudang_asal?.toLowerCase().includes(q) &&
-        !row.nama_gudang_tujuan?.toLowerCase().includes(q) &&
-        !row.dikirim_oleh_nama?.toLowerCase().includes(q)
-      ) return false;
-    }
-    if (dari) {
-      const tgl = row.tanggal_kirim ? row.tanggal_kirim.slice(0, 10) : '';
-      if (tgl < dari) return false;
-    }
-    if (sampai) {
-      const tgl = row.tanggal_kirim ? row.tanggal_kirim.slice(0, 10) : '';
-      if (tgl > sampai) return false;
-    }
-    return true;
-  });
+  useEffect(() => { muat(true); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="admin-page">
@@ -79,6 +71,7 @@ export default function RiwayatTransfer() {
             placeholder="Cari item, gudang, pengirim..."
             value={cari}
             onChange={(e) => setCari(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && muat(true)}
             style={{
               flex: '1 1 180px', height: 38, borderRadius: 8,
               border: '1.5px solid var(--warna-garis)', padding: '0 12px',
@@ -94,6 +87,7 @@ export default function RiwayatTransfer() {
               padding: '0 10px', fontSize: 13, color: 'var(--warna-arang)', outline: 'none',
             }}
           />
+          <button className="tombol tombol--primer" onClick={() => muat(true)}>Filter</button>
           <input
             type="date"
             value={sampai}
@@ -112,16 +106,16 @@ export default function RiwayatTransfer() {
       {error && <div className="pesan-error" style={{ margin: 20 }}>{error}</div>}
 
       {!loading && !error && (
-        filtered.length === 0 ? (
+        list.length === 0 ? (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--warna-abu)', fontSize: 14 }}>
             Tidak ada data transfer.
           </div>
         ) : (
           <div style={{ padding: '12px 20px', maxWidth: 800 }}>
-            {filtered.map((row) => (
+            {list.map((row) => (
               <button
                 key={row.id}
-                onClick={() => navigate(`/admin/riwayat-transfer/${row.id}`)}
+                onClick={() => navigate(`${basePath}/riwayat-transfer/${row.id}`)}
                 style={{
                   width: '100%', textAlign: 'left', background: 'white',
                   border: '1px solid var(--warna-garis)', borderRadius: 12,
@@ -140,7 +134,7 @@ export default function RiwayatTransfer() {
                     {row.nama_gudang_asal} → {row.nama_gudang_tujuan}
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--warna-abu)' }}>
-                    Oleh {row.dikirim_oleh_nama} · {tanggalFormatted(row.tanggal_kirim)}
+                    Dikirim oleh {row.dikirim_oleh_nama} · {waktuFormatted(row.tanggal_kirim)}
                   </div>
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -151,6 +145,11 @@ export default function RiwayatTransfer() {
                 </div>
               </button>
             ))}
+            {hasMore && (
+              <button className="tombol tombol--sekunder" disabled={loading} onClick={() => muat(false)} style={{ alignSelf: 'center', margin: '8px 0 20px' }}>
+                {loading ? 'Memuat...' : 'Muat lebih banyak'}
+              </button>
+            )}
           </div>
         )
       )}

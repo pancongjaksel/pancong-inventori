@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { api, ApiError } from '../../api/client';
 
-function tanggalFormatted(tgl) {
-  if (!tgl) return '-';
-  const d = new Date(tgl + 'T00:00:00');
-  return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+const PAGE_SIZE = 50;
+
+function waktuFormatted(iso) {
+  if (!iso) return '-';
+  return new Date(iso).toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
 function StatusBadge({ label, status }) {
@@ -25,43 +26,39 @@ function StatusBadge({ label, status }) {
 
 export default function RiwayatBarangMasuk() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const basePath = location.pathname.startsWith('/admin-gudang') ? '/admin-gudang' : '/admin';
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [cari, setCari] = useState('');
   const [dari, setDari] = useState('');
   const [sampai, setSampai] = useState('');
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
 
-  useEffect(() => {
-    async function muat() {
+  const muat = useCallback(async (reset = false) => {
+      const mulai = reset ? 0 : offset;
       setLoading(true);
       setError(null);
       try {
-        const hasil = await api.get('/barang-masuk-nota?status=semua');
-        setList(Array.isArray(hasil) ? hasil : []);
+        const params = new URLSearchParams({ status: 'semua', limit: String(PAGE_SIZE), offset: String(mulai) });
+        if (cari.trim()) params.set('search', cari.trim());
+        if (dari) params.set('dari', dari);
+        if (sampai) params.set('sampai', sampai);
+        const hasil = await api.get(`/barang-masuk-nota?${params}`);
+        const rows = Array.isArray(hasil) ? hasil : [];
+        setList((sebelumnya) => reset ? rows : [...sebelumnya, ...rows]);
+        setOffset(mulai + rows.length);
+        setHasMore(rows.length === PAGE_SIZE);
       } catch (err) {
         setError(err instanceof ApiError ? err.message : 'Gagal memuat riwayat barang masuk.');
       } finally {
         setLoading(false);
       }
-    }
-    muat();
-  }, []);
+  }, [cari, dari, sampai, offset]);
 
-  const filtered = list.filter((row) => {
-    if (cari) {
-      const q = cari.toLowerCase();
-      const inputOleh = (row.diinput_oleh_admin_nama || row.nama_crew_input || '').toLowerCase();
-      if (
-        !row.nama_gudang?.toLowerCase().includes(q) &&
-        !row.sumber?.toLowerCase().includes(q) &&
-        !inputOleh.includes(q)
-      ) return false;
-    }
-    if (dari && row.tanggal < dari) return false;
-    if (sampai && row.tanggal > sampai) return false;
-    return true;
-  });
+  useEffect(() => { muat(true); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="admin-page">
@@ -75,6 +72,7 @@ export default function RiwayatBarangMasuk() {
             placeholder="Cari gudang, sumber, penginput..."
             value={cari}
             onChange={(e) => setCari(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && muat(true)}
             style={{
               flex: '1 1 180px', height: 38, borderRadius: 8,
               border: '1.5px solid var(--warna-garis)', padding: '0 12px',
@@ -90,6 +88,7 @@ export default function RiwayatBarangMasuk() {
               padding: '0 10px', fontSize: 13, color: 'var(--warna-arang)', outline: 'none',
             }}
           />
+          <button className="tombol tombol--primer" onClick={() => muat(true)}>Filter</button>
           <input
             type="date"
             value={sampai}
@@ -108,19 +107,19 @@ export default function RiwayatBarangMasuk() {
       {error && <div className="pesan-error" style={{ margin: 20 }}>{error}</div>}
 
       {!loading && !error && (
-        filtered.length === 0 ? (
+        list.length === 0 ? (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--warna-abu)', fontSize: 14 }}>
             Tidak ada data barang masuk.
           </div>
         ) : (
           <div style={{ padding: '12px 20px', maxWidth: 800 }}>
-            {filtered.map((row) => {
+            {list.map((row) => {
               const inputOleh = row.diinput_oleh_admin_nama || row.nama_crew_input || 'Crew';
               const jumlahItem = row.items?.length ?? 0;
               return (
                 <button
                   key={row.id}
-                  onClick={() => navigate(`/admin/riwayat-barang-masuk/${row.id}`)}
+                  onClick={() => navigate(`${basePath}/riwayat-barang-masuk/${row.id}`)}
                   style={{
                     width: '100%', textAlign: 'left', background: 'white',
                     border: '1px solid var(--warna-garis)', borderRadius: 12,
@@ -139,7 +138,7 @@ export default function RiwayatBarangMasuk() {
                       {row.nama_gudang}{row.sumber ? ` · ${row.sumber}` : ''}
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--warna-abu)' }}>
-                      {jumlahItem} item · {inputOleh} · {tanggalFormatted(row.tanggal)}
+                      {jumlahItem} item · Diinput oleh {inputOleh} · {waktuFormatted(row.created_at)}
                     </div>
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--warna-abu)', flexShrink: 0, paddingTop: 2 }}>
@@ -148,6 +147,11 @@ export default function RiwayatBarangMasuk() {
                 </button>
               );
             })}
+            {hasMore && (
+              <button className="tombol tombol--sekunder" disabled={loading} onClick={() => muat(false)} style={{ alignSelf: 'center', margin: '8px 0 20px' }}>
+                {loading ? 'Memuat...' : 'Muat lebih banyak'}
+              </button>
+            )}
           </div>
         )
       )}

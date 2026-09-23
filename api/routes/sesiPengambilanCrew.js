@@ -86,15 +86,24 @@ router.get('/saya', requireDevice, async (req, res, next) => {
 });
 
 /**
- * GET /api/sesi-pengambilan-crew/gudang/:gudang_id — riwayat 30 hari per gudang
- * Auth: device crew. Device harus berada di gudang yang sama dengan URL param.
+ * Riwayat gudang untuk crew. Gudang selalu diambil dari token sesi, bukan
+ * dari nilai yang dikirim browser.
  */
-router.get('/gudang/:gudang_id', requireDevice, async (req, res, next) => {
+const riwayatGudangHandler = async (req, res, next) => {
   try {
-    const gudangId = Number(req.params.gudang_id);
-    if (!gudangId || req.device.gudangId !== gudangId) {
-      return res.status(403).json({ sukses: false, kode: 'AKSES_DITOLAK', pesan: 'Kamu tidak bisa melihat riwayat gudang lain.' });
-    }
+    const gudangId = req.device.gudangId;
+
+    const { filter, limit, offset } = req.query;
+    const batas = Math.min(Math.max(Number(limit) || 50, 1), 100);
+    const mulai = Math.max(Number(offset) || 0, 0);
+    const kondisiTanggal = filter === 'hari-ini'
+      ? 'AND spc.tanggal = CURRENT_DATE'
+      : filter === '7-hari'
+        ? "AND spc.tanggal >= CURRENT_DATE - INTERVAL '7 days'"
+        // Kompatibilitas tab Riwayat di halaman Ambil Barang: tanpa filter
+        // tetap 30 hari. Halaman Riwayat Crew mengirim filter=semua agar
+        // seluruh histori gudang dapat diakses bertahap.
+        : filter === 'semua' ? '' : "AND spc.tanggal >= CURRENT_DATE - INTERVAL '30 days'";
 
     const { rows } = await pool.query(`
       SELECT
@@ -114,16 +123,28 @@ router.get('/gudang/:gudang_id', requireDevice, async (req, res, next) => {
       JOIN sesi_pengambilan_item spi ON spi.sesi_id = spc.id
       JOIN item i ON i.id = spi.item_id
       WHERE spc.gudang_asal_id = $1
-        AND spc.tanggal >= CURRENT_DATE - INTERVAL '30 days'
+        ${kondisiTanggal}
       GROUP BY spc.id, o.nama
       ORDER BY spc.created_at DESC
-      LIMIT 50
-    `, [gudangId]);
+      LIMIT $2 OFFSET $3
+    `, [gudangId, batas, mulai]);
 
     res.status(200).json({ sukses: true, data: rows });
   } catch (err) {
     next(err);
   }
+};
+
+// Endpoint baru dipakai UI crew: tidak menerima gudangId dari client.
+router.get('/gudang', requireDevice, riwayatGudangHandler);
+
+// Kompatibilitas endpoint lama untuk tab Riwayat Ambil Barang. Tetap tolak
+// setiap ID yang tidak identik dengan gudang pada token device.
+router.get('/gudang/:gudang_id', requireDevice, (req, res, next) => {
+  if (Number(req.params.gudang_id) !== req.device.gudangId) {
+    return res.status(403).json({ sukses: false, kode: 'AKSES_DITOLAK', pesan: 'Kamu tidak bisa melihat riwayat gudang lain.' });
+  }
+  return riwayatGudangHandler(req, res, next);
 });
 
 /**
@@ -150,9 +171,10 @@ router.get('/:id', requireAnyAuth, async (req, res, next) => {
 
     const sesi = header[0];
 
-    // Crew: hanya boleh lihat sesi miliknya
+    // Crew boleh melihat riwayat seluruh crew di gudangnya sendiri, tetapi
+    // tetap tidak bisa membuka sesi dari gudang lain.
     if (req.device && !req.user?.role?.includes('admin')) {
-      if (sesi.gudang_asal_id !== req.device.gudangId || sesi.nama_crew !== req.device.nama) {
+      if (sesi.gudang_asal_id !== req.device.gudangId) {
         return res.status(403).json({ sukses: false, pesan: 'Akses ditolak.' });
       }
     }

@@ -230,19 +230,41 @@ async function verifikasiNota(input) {
   }
 }
 
-async function listNota(status) {
+async function listNota(status, filters = {}) {
   const filterSemua = status === 'semua';
+  const batas = Math.min(Math.max(Number(filters.limit) || 50, 1), 100);
+  const mulai = Math.max(Number(filters.offset) || 0, 0);
+  const kondisi = [];
+  const params = [];
+
+  if (!filterSemua) {
+    params.push(status);
+    kondisi.push(`tmn.status_verifikasi = $${params.length}`);
+  }
+  if (filters.dari) {
+    params.push(filters.dari);
+    kondisi.push(`tmn.created_at >= $${params.length}::date`);
+  }
+  if (filters.sampai) {
+    params.push(filters.sampai);
+    kondisi.push(`tmn.created_at < ($${params.length}::date + INTERVAL '1 day')`);
+  }
+  if (filters.search?.trim()) {
+    params.push(`%${filters.search.trim()}%`);
+    kondisi.push(`(g.nama ILIKE $${params.length} OR COALESCE(tmn.sumber, '') ILIKE $${params.length} OR COALESCE(u.nama, tmn.nama_crew_input, '') ILIKE $${params.length})`);
+  }
+  params.push(batas, mulai);
   const { rows: notaRows } = await pool.query(
     `SELECT tmn.id, tmn.sumber, tmn.foto_bukti_url, tmn.diinput_oleh_role, tmn.nama_crew_input,
-            tmn.status_verifikasi, tmn.label_status, tmn.catatan_verifikasi, tmn.tanggal, tmn.created_at,
+            tmn.status_verifikasi, tmn.label_status, tmn.catatan_verifikasi, tmn.tanggal, tmn.created_at, tmn.tanggal_verifikasi,
             g.nama AS nama_gudang, u.nama AS diinput_oleh_admin_nama
      FROM transaksi_masuk_nota tmn
      JOIN gudang g ON g.id = tmn.gudang_id
      LEFT JOIN users u ON u.id = tmn.diinput_oleh_user_id
-     ${filterSemua ? '' : 'WHERE tmn.status_verifikasi = $1'}
+     WHERE ${kondisi.length ? kondisi.join(' AND ') : 'TRUE'}
      ORDER BY tmn.created_at DESC
-     LIMIT 200`,
-    filterSemua ? [] : [status]
+     LIMIT $${params.length - 1} OFFSET $${params.length}`,
+    params
   );
 
   if (notaRows.length === 0) return [];
@@ -267,7 +289,7 @@ async function listNota(status) {
 async function getNota(id) {
   const { rows } = await pool.query(
     `SELECT tmn.id, tmn.sumber, tmn.foto_bukti_url, tmn.diinput_oleh_role, tmn.nama_crew_input,
-            tmn.status_verifikasi, tmn.label_status, tmn.catatan_verifikasi, tmn.tanggal, tmn.created_at,
+            tmn.status_verifikasi, tmn.label_status, tmn.catatan_verifikasi, tmn.tanggal, tmn.created_at, tmn.tanggal_verifikasi,
             g.nama AS nama_gudang, u.nama AS diinput_oleh_admin_nama,
             v.nama AS diverifikasi_oleh_nama
      FROM transaksi_masuk_nota tmn
