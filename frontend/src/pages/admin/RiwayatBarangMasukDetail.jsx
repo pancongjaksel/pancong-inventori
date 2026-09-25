@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { api, ApiError } from '../../api/client';
+import { api, ApiError, authStorage } from '../../api/client';
+
+function rupiah(nilai) {
+  return `Rp ${Number(nilai).toLocaleString('id-ID')}`;
+}
 
 function tanggalFormatted(tgl) {
   if (!tgl) return '-';
@@ -48,22 +52,52 @@ export default function RiwayatBarangMasukDetail() {
   const [nota, setNota] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [editHarga, setEditHarga] = useState(false);
+  const [hargaDraft, setHargaDraft] = useState({});
+  const [menyimpanHarga, setMenyimpanHarga] = useState(false);
+  const bisaUbahHarga = Boolean(authStorage.ambilAdminToken());
 
-  useEffect(() => {
-    async function muat() {
-      setLoading(true);
-      setError(null);
-      try {
-        const data = await api.get(`/barang-masuk-nota/${id}`);
-        setNota(data);
-      } catch (err) {
-        setError(err instanceof ApiError ? err.message : 'Gagal memuat detail nota.');
-      } finally {
-        setLoading(false);
-      }
+  async function muatNota() {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await api.get(`/barang-masuk-nota/${id}`);
+      setNota(data);
+      setHargaDraft(Object.fromEntries((data.items ?? []).map((item) => [item.item_row_id, item.harga_beli ?? ''])));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Gagal memuat detail nota.');
+    } finally {
+      setLoading(false);
     }
-    muat();
-  }, [id]);
+  }
+
+  useEffect(() => { muatNota(); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function simpanHarga() {
+    const perubahan = (nota.items ?? [])
+      .filter((item) => String(hargaDraft[item.item_row_id] ?? '') !== String(item.harga_beli ?? ''))
+      .map((item) => ({ itemRowId: item.item_row_id, hargaBeli: hargaDraft[item.item_row_id] }));
+    if (perubahan.length === 0) {
+      setError('Belum ada harga yang diubah.');
+      return;
+    }
+    if (perubahan.some((item) => item.hargaBeli === '' || Number(item.hargaBeli) <= 0)) {
+      setError('Harga beli yang diubah harus lebih dari Rp 0.');
+      return;
+    }
+
+    setMenyimpanHarga(true);
+    setError(null);
+    try {
+      await api.patch(`/barang-masuk-nota/${id}/harga`, { items: perubahan });
+      setEditHarga(false);
+      await muatNota();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Gagal menyimpan harga beli.');
+    } finally {
+      setMenyimpanHarga(false);
+    }
+  }
 
   if (loading) return (
     <div className="admin-page">
@@ -133,6 +167,19 @@ export default function RiwayatBarangMasukDetail() {
         <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--warna-abu)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
           Barang ({nota.items?.length ?? 0})
         </div>
+        {bisaUbahHarga && nota.status_verifikasi === 'terverifikasi' && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center', marginBottom: 8 }}>
+            <div style={{ fontSize: 12, color: 'var(--warna-abu)' }}>Harga bisa dilengkapi atau dikoreksi tanpa mengubah stok.</div>
+            {!editHarga ? (
+              <button className="tombol tombol--sekunder" style={{ width: 'auto', padding: '0 12px', flexShrink: 0 }} onClick={() => setEditHarga(true)}>Edit harga</button>
+            ) : (
+              <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                <button className="tombol tombol--sekunder" style={{ width: 'auto', padding: '0 12px' }} onClick={() => { setEditHarga(false); setHargaDraft(Object.fromEntries(nota.items.map((item) => [item.item_row_id, item.harga_beli ?? '']))); }}>Batal</button>
+                <button className="tombol tombol--primer" style={{ width: 'auto', padding: '0 12px' }} onClick={simpanHarga} disabled={menyimpanHarga}>{menyimpanHarga ? <span className="spinner" /> : 'Simpan'}</button>
+              </div>
+            )}
+          </div>
+        )}
         <div style={{ background: 'white', border: '1px solid var(--warna-garis)', borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
           {(nota.items ?? []).map((item, i) => (
             <div
@@ -147,18 +194,52 @@ export default function RiwayatBarangMasukDetail() {
                 <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--warna-arang)' }}>{item.nama_item}</div>
                 <div style={{ fontSize: 11, color: 'var(--warna-abu)', marginTop: 1 }}>
                   {item.kode_barang}
-                  {item.harga_beli ? ` · Rp ${Number(item.harga_beli).toLocaleString('id-ID')}` : ''}
+                  {item.harga_beli !== null ? ` · ${rupiah(item.harga_beli)} / ${item.satuan}` : ' · Harga belum diisi'}
                 </div>
+                {editHarga && (
+                  <label style={{ display: 'block', marginTop: 8, fontSize: 11, color: 'var(--warna-abu)' }}>
+                    Harga beli per {item.satuan}
+                    <input
+                      type="number"
+                      min="1"
+                      step="0.01"
+                      className="input-teks"
+                      value={hargaDraft[item.item_row_id] ?? ''}
+                      onChange={(e) => setHargaDraft((draft) => ({ ...draft, [item.item_row_id]: e.target.value }))}
+                      style={{ display: 'block', marginTop: 3, maxWidth: 180 }}
+                    />
+                  </label>
+                )}
               </div>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontFamily: 'var(--font-angka)', fontSize: 16, fontWeight: 700, color: 'var(--warna-arang)' }}>
                   {Number(item.jumlah).toLocaleString('id-ID')}
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--warna-abu)' }}>{item.satuan}</div>
+                {item.harga_beli !== null && (
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--warna-karamel)', marginTop: 4 }}>
+                    {rupiah(Number(item.jumlah) * Number(item.harga_beli))}
+                  </div>
+                )}
               </div>
             </div>
           ))}
         </div>
+
+        {(nota.riwayatHarga ?? []).length > 0 && (
+          <div style={{ background: 'white', border: '1px solid var(--warna-garis)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--warna-abu)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Riwayat perubahan harga</div>
+            {nota.riwayatHarga.map((riwayat) => {
+              const item = nota.items.find((baris) => baris.item_row_id === riwayat.item_row_id);
+              return (
+                <div key={`${riwayat.item_row_id}-${riwayat.created_at}`} style={{ fontSize: 12, padding: '8px 0', borderTop: '1px solid var(--warna-garis)' }}>
+                  <strong>{item?.nama_item || 'Barang'}</strong>: {riwayat.harga_sebelum === null ? 'belum diisi' : rupiah(riwayat.harga_sebelum)} → {rupiah(riwayat.harga_sesudah)}<br />
+                  <span style={{ color: 'var(--warna-abu)' }}>{riwayat.diubah_oleh_nama} · {waktuFormatted(riwayat.created_at)}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Foto bukti */}
         {nota.foto_bukti_url && (

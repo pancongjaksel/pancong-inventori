@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { api, downloadFile, ApiError } from '../../api/client';
 import PengambilanPerOutlet from '../../components/PengambilanPerOutlet';
 import OpnameOutlet from './OpnameOutlet';
@@ -18,6 +19,8 @@ const TABS = [
 ];
 
 export default function LaporanForecast() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [tab, setTab] = useState('forecast');
   const [periode, setPeriode] = useState(periodeSekarang());
   const [data, setData] = useState(null);
@@ -90,6 +93,12 @@ export default function LaporanForecast() {
       setDownloadingBelanja(false);
     }
   }
+
+  // Laporan belanja selalu dibaca ulang dari database ketika tab dibuka atau
+  // filternya berubah, sehingga harga yang baru dilengkapi langsung masuk total.
+  useEffect(() => {
+    if (tab === 'belanja') muatBelanja();
+  }, [tab, periode, gudangId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div>
@@ -198,6 +207,24 @@ export default function LaporanForecast() {
                   {belanjaData.ringkasan.jumlahBarisTanpaHarga > 0 && ` · ${belanjaData.ringkasan.jumlahBarisTanpaHarga} baris tanpa harga`}
                 </div>
               </div>
+
+              {belanjaData.ringkasan.jumlahBarisTanpaHarga > 0 && (
+                <div className="kartu" style={{ marginBottom: 16, borderColor: '#E8C985' }}>
+                  <div style={{ fontWeight: 700, color: '#7A5420', marginBottom: 4 }}>Harga perlu dilengkapi</div>
+                  <div style={{ fontSize: 12, color: 'var(--warna-abu)', marginBottom: 10 }}>
+                    {belanjaData.ringkasan.jumlahBarisTanpaHarga} baris belum dihitung dalam total. Buka nota untuk mengisi harga per barang.
+                  </div>
+                  {belanjaData.detail.filter((item) => item.harga_beli === null).map((item) => (
+                    <div key={`${item.nota_id}-${item.item_row_id}`} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center', padding: '8px 0', borderTop: '1px solid var(--warna-garis)' }}>
+                      <div style={{ fontSize: 13 }}>
+                        <strong>{item.nama_item}</strong><br />
+                        <span style={{ color: 'var(--warna-abu)', fontSize: 11 }}>Nota #{item.nota_id} · {item.nama_gudang} · {Number(item.jumlah).toLocaleString('id-ID')} {item.satuan}</span>
+                      </div>
+                      <button className="tombol tombol--sekunder" style={{ width: 'auto', padding: '0 10px', flexShrink: 0 }} onClick={() => navigate(`${location.pathname.startsWith('/admin-gudang') ? '/admin-gudang' : '/admin'}/riwayat-barang-masuk/${item.nota_id}`)}>Buka nota</button>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {belanjaData.perPemasok.length === 0 ? (
                 <p style={{ color: 'var(--warna-abu)', fontSize: 14 }}>Tidak ada penerimaan terverifikasi pada periode ini.</p>

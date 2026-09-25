@@ -7,6 +7,7 @@ const {
   verifikasiNota,
   listNota,
   getNota,
+  updateHargaNota,
   jumlahNotaMenunggu,
 } = require('../services/barangMasukNotaService');
 
@@ -43,6 +44,16 @@ router.get('/:id', requireAdminOrGudang, async (req, res, next) => {
     const nota = await getNota(Number(req.params.id));
     if (!nota) return res.status(404).json({ sukses: false, pesan: 'Nota tidak ditemukan.' });
     res.status(200).json({ sukses: true, data: nota });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** PATCH /api/barang-masuk-nota/:id/harga — hanya Admin/Owner. */
+router.patch('/:id/harga', requireAdmin, async (req, res, next) => {
+  try {
+    const hasil = await updateHargaNota({ id: Number(req.params.id), items: req.body.items, adminUserId: req.user.id });
+    res.status(200).json({ sukses: true, data: hasil });
   } catch (err) {
     next(err);
   }

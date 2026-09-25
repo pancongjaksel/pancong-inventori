@@ -17,6 +17,30 @@ function validasiFieldNota({ items, fotoBuktiUrl }) {
   }
 }
 
+/** Harga pembelian adalah nilai finansial; nol, negatif, dan duplikasi baris
+ * tidak boleh ikut tersimpan agar laporan belanja tidak menghasilkan total palsu. */
+function validasiUpdateHargaNota({ items }) {
+  if (!Array.isArray(items) || items.length === 0) {
+    throw new AppError('Minimal 1 harga barang wajib diisi.', 400, 'HARGA_ITEMS_KOSONG');
+  }
+
+  const itemRowIds = new Set();
+  for (const item of items) {
+    const itemRowId = Number(item?.itemRowId);
+    const hargaBeli = Number(item?.hargaBeli);
+    if (!Number.isInteger(itemRowId) || itemRowId <= 0) {
+      throw new AppError('Baris barang tidak valid.', 400, 'ITEM_ROW_TIDAK_VALID');
+    }
+    if (!Number.isFinite(hargaBeli) || hargaBeli <= 0) {
+      throw new AppError('Harga beli setiap barang harus lebih dari 0.', 400, 'HARGA_BELI_TIDAK_VALID');
+    }
+    if (itemRowIds.has(itemRowId)) {
+      throw new AppError('Satu baris barang hanya boleh diubah sekali.', 400, 'ITEM_ROW_DUPLIKAT');
+    }
+    itemRowIds.add(itemRowId);
+  }
+}
+
 async function validasiInputAdminNota(client, { userId, gudangId }) {
   await validasiAksesGudangAdmin(client, { userId, gudangId });
 }
@@ -90,6 +114,7 @@ async function validasiSebelumVerifikasiNota(client, { id, aksi, adminUserId, ca
 
 module.exports = {
   validasiFieldNota,
+  validasiUpdateHargaNota,
   validasiInputAdminNota,
   validasiInputCrewNota,
   validasiInputAdminGudangNota,

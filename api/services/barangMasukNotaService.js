@@ -1,12 +1,14 @@
 const { pool } = require('../db/pool');
 const {
   validasiFieldNota,
+  validasiUpdateHargaNota,
   validasiInputAdminNota,
   validasiInputCrewNota,
   validasiInputAdminGudangNota,
   validasiSebelumVerifikasiNota,
 } = require('../validators/barangMasukNotaValidator');
 const { beginIdempotent, finishIdempotent } = require('./idempotencyService');
+const { AppError } = require('../errors/AppError');
 
 async function buatNotaAdmin(input) {
   const { gudangId, items, sumber, fotoBuktiUrl, adminUserId, tanggal } = input;
@@ -310,7 +312,82 @@ async function getNota(id) {
      ORDER BY tmi.id`,
     [id]
   );
-  return { ...nota, items: itemRows };
+  const { rows: riwayatHarga } = await pool.query(
+    `SELECT audit.transaksi_masuk_item_id AS item_row_id, audit.harga_sebelum,
+            audit.harga_sesudah, audit.created_at, u.nama AS diubah_oleh_nama
+     FROM transaksi_masuk_harga_audit audit
+     JOIN users u ON u.id = audit.diubah_oleh_user_id
+     WHERE audit.nota_id = $1
+     ORDER BY audit.created_at DESC, audit.id DESC`,
+    [id]
+  );
+  return { ...nota, items: itemRows, riwayatHarga };
+}
+
+/**
+ * Harga boleh dilengkapi atau dikoreksi setelah nota diterima. Stok tidak
+ * berubah: ini murni metadata nilai pembelian yang dipakai laporan keuangan.
+ */
+async function updateHargaNota({ id, items, adminUserId }) {
+  validasiUpdateHargaNota({ items });
+  if (!Number.isInteger(Number(id)) || Number(id) <= 0) {
+    throw new AppError('Nota barang masuk tidak valid.', 400, 'NOTA_TIDAK_VALID');
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const { rows: notaRows } = await client.query(
+      'SELECT id, status_verifikasi FROM transaksi_masuk_nota WHERE id = $1 FOR UPDATE',
+      [id]
+    );
+    const nota = notaRows[0];
+    if (!nota) throw new AppError('Nota barang masuk tidak ditemukan.', 404, 'NOTA_TIDAK_DITEMUKAN');
+    if (nota.status_verifikasi !== 'terverifikasi') {
+      throw new AppError('Harga hanya bisa diisi untuk nota yang sudah terverifikasi.', 409, 'NOTA_BELUM_TERVERIFIKASI');
+    }
+
+    const itemRowIds = items.map((item) => Number(item.itemRowId));
+    const { rows: barisNota } = await client.query(
+      `SELECT id, harga_beli
+       FROM transaksi_masuk_item
+       WHERE nota_id = $1 AND id = ANY($2::int[])
+       FOR UPDATE`,
+      [id, itemRowIds]
+    );
+    if (barisNota.length !== items.length) {
+      throw new AppError('Salah satu barang bukan bagian dari nota ini.', 400, 'ITEM_BEDA_NOTA');
+    }
+
+    const hargaLama = new Map(barisNota.map((baris) => [baris.id, baris.harga_beli]));
+    let jumlahDiubah = 0;
+    for (const item of items) {
+      const itemRowId = Number(item.itemRowId);
+      const hargaBeli = Number(item.hargaBeli);
+      const sebelum = hargaLama.get(itemRowId);
+      if (sebelum !== null && Number(sebelum) === hargaBeli) continue;
+
+      await client.query(
+        'UPDATE transaksi_masuk_item SET harga_beli = $1 WHERE id = $2 AND nota_id = $3',
+        [hargaBeli, itemRowId, id]
+      );
+      await client.query(
+        `INSERT INTO transaksi_masuk_harga_audit
+         (nota_id, transaksi_masuk_item_id, harga_sebelum, harga_sesudah, diubah_oleh_user_id)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [id, itemRowId, sebelum, hargaBeli, adminUserId]
+      );
+      jumlahDiubah += 1;
+    }
+
+    await client.query('COMMIT');
+    return { notaId: Number(id), jumlahDiubah };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 /** Badge count nav "Verifikasi" — query ringan, gak perlu batch item kayak listNota. */
@@ -328,5 +405,6 @@ module.exports = {
   verifikasiNota,
   listNota,
   getNota,
+  updateHargaNota,
   jumlahNotaMenunggu,
 };
