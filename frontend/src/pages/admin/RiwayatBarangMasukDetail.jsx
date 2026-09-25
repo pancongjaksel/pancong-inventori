@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { api, ApiError, authStorage } from '../../api/client';
+import { api, ApiError } from '../../api/client';
 
 function rupiah(nilai) {
   return `Rp ${Number(nilai).toLocaleString('id-ID')}`;
@@ -8,7 +8,8 @@ function rupiah(nilai) {
 
 function tanggalFormatted(tgl) {
   if (!tgl) return '-';
-  const d = new Date(tgl + 'T00:00:00');
+  const d = new Date(String(tgl).includes('T') ? tgl : `${tgl}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return '-';
   return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
@@ -55,7 +56,7 @@ export default function RiwayatBarangMasukDetail() {
   const [editHarga, setEditHarga] = useState(false);
   const [hargaDraft, setHargaDraft] = useState({});
   const [menyimpanHarga, setMenyimpanHarga] = useState(false);
-  const bisaUbahHarga = Boolean(authStorage.ambilAdminToken());
+  const bisaUbahHarga = nota?.izinUbahHarga === true;
 
   async function muatNota() {
     setLoading(true);

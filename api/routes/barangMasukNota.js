@@ -43,7 +43,12 @@ router.get('/:id', requireAdminOrGudang, async (req, res, next) => {
   try {
     const nota = await getNota(Number(req.params.id));
     if (!nota) return res.status(404).json({ sukses: false, pesan: 'Nota tidak ditemukan.' });
-    res.status(200).json({ sukses: true, data: nota });
+    // Izin UI berasal dari sesi yang sudah diverifikasi server, bukan dari
+    // localStorage browser yang dapat tertinggal setelah pembaruan PWA.
+    res.status(200).json({
+      sukses: true,
+      data: { ...nota, izinUbahHarga: ['admin', 'owner'].includes(req.user.role) },
+    });
   } catch (err) {
     next(err);
   }
