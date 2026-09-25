@@ -56,7 +56,11 @@ export default function RiwayatBarangMasukDetail() {
   const [editHarga, setEditHarga] = useState(false);
   const [hargaDraft, setHargaDraft] = useState({});
   const [menyimpanHarga, setMenyimpanHarga] = useState(false);
+  const [editSumber, setEditSumber] = useState(false);
+  const [sumberDraft, setSumberDraft] = useState('');
+  const [menyimpanSumber, setMenyimpanSumber] = useState(false);
   const bisaUbahHarga = nota?.izinUbahHarga === true;
+  const bisaUbahSumber = nota?.izinUbahSumber === true;
 
   async function muatNota() {
     setLoading(true);
@@ -65,6 +69,7 @@ export default function RiwayatBarangMasukDetail() {
       const data = await api.get(`/barang-masuk-nota/${id}`);
       setNota(data);
       setHargaDraft(Object.fromEntries((data.items ?? []).map((item) => [item.item_row_id, item.harga_beli ?? ''])));
+      setSumberDraft(data.sumber ?? '');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Gagal memuat detail nota.');
     } finally {
@@ -97,6 +102,24 @@ export default function RiwayatBarangMasukDetail() {
       setError(err instanceof ApiError ? err.message : 'Gagal menyimpan harga beli.');
     } finally {
       setMenyimpanHarga(false);
+    }
+  }
+
+  async function simpanSumber() {
+    if (!sumberDraft.trim()) {
+      setError('Nama toko atau vendor wajib diisi.');
+      return;
+    }
+    setMenyimpanSumber(true);
+    setError(null);
+    try {
+      await api.patch(`/barang-masuk-nota/${id}/sumber`, { sumber: sumberDraft });
+      setEditSumber(false);
+      await muatNota();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Gagal menyimpan asal toko atau vendor.');
+    } finally {
+      setMenyimpanSumber(false);
     }
   }
 
@@ -147,7 +170,25 @@ export default function RiwayatBarangMasukDetail() {
           display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14,
         }}>
           <InfoRow label="Gudang" value={nota.nama_gudang} />
-          <InfoRow label="Sumber" value={nota.sumber} />
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--warna-abu)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 3 }}>Asal toko/vendor</div>
+            {!editSumber ? (
+              <>
+                <div style={{ fontSize: 14, fontWeight: 600, color: nota.sumber ? 'var(--warna-arang)' : 'var(--warna-abu)' }}>{nota.sumber || 'Belum diisi'}</div>
+                {bisaUbahSumber && nota.status_verifikasi === 'terverifikasi' && (
+                  <button onClick={() => setEditSumber(true)} style={{ marginTop: 6, padding: 0, border: 'none', background: 'none', color: 'var(--warna-karamel)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{nota.sumber ? 'Ubah vendor' : 'Lengkapi vendor'}</button>
+                )}
+              </>
+            ) : (
+              <>
+                <input className="input-teks" value={sumberDraft} maxLength="150" autoFocus onChange={(e) => setSumberDraft(e.target.value)} placeholder="Contoh: Pancasari" style={{ width: '100%', marginTop: 2 }} />
+                <div style={{ display: 'flex', gap: 8, marginTop: 7 }}>
+                  <button className="tombol tombol--sekunder" style={{ width: 'auto', padding: '0 10px' }} onClick={() => { setEditSumber(false); setSumberDraft(nota.sumber ?? ''); }}>Batal</button>
+                  <button className="tombol tombol--primer" style={{ width: 'auto', padding: '0 10px' }} onClick={simpanSumber} disabled={menyimpanSumber}>{menyimpanSumber ? <span className="spinner" /> : 'Simpan'}</button>
+                </div>
+              </>
+            )}
+          </div>
           <InfoRow label="Diinput Oleh" value={inputOleh} />
           <InfoRow label="Role Input" value={nota.diinput_oleh_role} />
           <InfoRow label="Waktu Input" value={waktuFormatted(nota.created_at)} />
@@ -239,6 +280,18 @@ export default function RiwayatBarangMasukDetail() {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {(nota.riwayatSumber ?? []).length > 0 && (
+          <div style={{ background: 'white', border: '1px solid var(--warna-garis)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--warna-abu)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Riwayat asal toko/vendor</div>
+            {nota.riwayatSumber.map((riwayat) => (
+              <div key={riwayat.created_at} style={{ fontSize: 12, padding: '8px 0', borderTop: '1px solid var(--warna-garis)' }}>
+                {riwayat.sumber_sebelum || 'belum diisi'} → <strong>{riwayat.sumber_sesudah}</strong><br />
+                <span style={{ color: 'var(--warna-abu)' }}>{riwayat.diubah_oleh_nama} · {waktuFormatted(riwayat.created_at)}</span>
+              </div>
+            ))}
           </div>
         )}
 

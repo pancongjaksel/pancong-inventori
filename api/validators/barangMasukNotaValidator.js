@@ -41,6 +41,17 @@ function validasiUpdateHargaNota({ items }) {
   }
 }
 
+function validasiUpdateSumberNota({ sumber }) {
+  const nilai = String(sumber ?? '').trim();
+  if (!nilai) {
+    throw new AppError('Nama toko atau vendor wajib diisi.', 400, 'SUMBER_KOSONG');
+  }
+  if (nilai.length > 150) {
+    throw new AppError('Nama toko atau vendor maksimal 150 karakter.', 400, 'SUMBER_TERLALU_PANJANG');
+  }
+  return nilai;
+}
+
 async function validasiInputAdminNota(client, { userId, gudangId }) {
   await validasiAksesGudangAdmin(client, { userId, gudangId });
 }
@@ -115,6 +126,7 @@ async function validasiSebelumVerifikasiNota(client, { id, aksi, adminUserId, ca
 module.exports = {
   validasiFieldNota,
   validasiUpdateHargaNota,
+  validasiUpdateSumberNota,
   validasiInputAdminNota,
   validasiInputCrewNota,
   validasiInputAdminGudangNota,

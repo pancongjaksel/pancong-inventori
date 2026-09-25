@@ -8,6 +8,7 @@ const {
   listNota,
   getNota,
   updateHargaNota,
+  updateSumberNota,
   jumlahNotaMenunggu,
 } = require('../services/barangMasukNotaService');
 
@@ -47,7 +48,11 @@ router.get('/:id', requireAdminOrGudang, async (req, res, next) => {
     // localStorage browser yang dapat tertinggal setelah pembaruan PWA.
     res.status(200).json({
       sukses: true,
-      data: { ...nota, izinUbahHarga: ['admin', 'owner'].includes(req.user.role) },
+      data: {
+        ...nota,
+        izinUbahHarga: ['admin', 'owner'].includes(req.user.role),
+        izinUbahSumber: ['admin', 'owner'].includes(req.user.role),
+      },
     });
   } catch (err) {
     next(err);
@@ -58,6 +63,16 @@ router.get('/:id', requireAdminOrGudang, async (req, res, next) => {
 router.patch('/:id/harga', requireAdmin, async (req, res, next) => {
   try {
     const hasil = await updateHargaNota({ id: Number(req.params.id), items: req.body.items, adminUserId: req.user.id });
+    res.status(200).json({ sukses: true, data: hasil });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** PATCH /api/barang-masuk-nota/:id/sumber — hanya Admin/Owner. */
+router.patch('/:id/sumber', requireAdmin, async (req, res, next) => {
+  try {
+    const hasil = await updateSumberNota({ id: Number(req.params.id), sumber: req.body.sumber, adminUserId: req.user.id });
     res.status(200).json({ sukses: true, data: hasil });
   } catch (err) {
     next(err);

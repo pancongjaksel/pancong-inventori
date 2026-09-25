@@ -2,6 +2,7 @@ const { pool } = require('../db/pool');
 const {
   validasiFieldNota,
   validasiUpdateHargaNota,
+  validasiUpdateSumberNota,
   validasiInputAdminNota,
   validasiInputCrewNota,
   validasiInputAdminGudangNota,
@@ -321,7 +322,57 @@ async function getNota(id) {
      ORDER BY audit.created_at DESC, audit.id DESC`,
     [id]
   );
-  return { ...nota, items: itemRows, riwayatHarga };
+  const { rows: riwayatSumber } = await pool.query(
+    `SELECT audit.sumber_sebelum, audit.sumber_sesudah, audit.created_at,
+            u.nama AS diubah_oleh_nama
+     FROM transaksi_masuk_sumber_audit audit
+     JOIN users u ON u.id = audit.diubah_oleh_user_id
+     WHERE audit.nota_id = $1
+     ORDER BY audit.created_at DESC, audit.id DESC`,
+    [id]
+  );
+  return { ...nota, items: itemRows, riwayatHarga, riwayatSumber };
+}
+
+async function updateSumberNota({ id, sumber, adminUserId }) {
+  const sumberBaru = validasiUpdateSumberNota({ sumber });
+  if (!Number.isInteger(Number(id)) || Number(id) <= 0) {
+    throw new AppError('Nota barang masuk tidak valid.', 400, 'NOTA_TIDAK_VALID');
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const { rows } = await client.query(
+      'SELECT id, sumber, status_verifikasi FROM transaksi_masuk_nota WHERE id = $1 FOR UPDATE',
+      [id]
+    );
+    const nota = rows[0];
+    if (!nota) throw new AppError('Nota barang masuk tidak ditemukan.', 404, 'NOTA_TIDAK_DITEMUKAN');
+    if (nota.status_verifikasi !== 'terverifikasi') {
+      throw new AppError('Asal toko atau vendor hanya bisa diubah pada nota yang sudah terverifikasi.', 409, 'NOTA_BELUM_TERVERIFIKASI');
+    }
+
+    const sumberSebelum = nota.sumber?.trim() || null;
+    if (sumberSebelum === sumberBaru) {
+      await client.query('COMMIT');
+      return { notaId: Number(id), diubah: false };
+    }
+    await client.query('UPDATE transaksi_masuk_nota SET sumber = $1 WHERE id = $2', [sumberBaru, id]);
+    await client.query(
+      `INSERT INTO transaksi_masuk_sumber_audit
+       (nota_id, sumber_sebelum, sumber_sesudah, diubah_oleh_user_id)
+       VALUES ($1, $2, $3, $4)`,
+      [id, sumberSebelum, sumberBaru, adminUserId]
+    );
+    await client.query('COMMIT');
+    return { notaId: Number(id), diubah: true };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 /**
@@ -405,6 +456,7 @@ module.exports = {
   verifikasiNota,
   listNota,
   getNota,
+  updateSumberNota,
   updateHargaNota,
   jumlahNotaMenunggu,
 };

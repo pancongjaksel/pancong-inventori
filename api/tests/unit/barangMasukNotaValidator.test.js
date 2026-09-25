@@ -2,6 +2,7 @@ const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const {
   validasiUpdateHargaNota,
+  validasiUpdateSumberNota,
 } = require('../../validators/barangMasukNotaValidator');
 
 describe('validasiUpdateHargaNota', () => {
@@ -24,5 +25,15 @@ describe('validasiUpdateHargaNota', () => {
     assert.throws(() => validasiUpdateHargaNota({
       items: [{ itemRowId: 1, hargaBeli: 1000 }, { itemRowId: 1, hargaBeli: 2000 }],
     }), { message: 'Satu baris barang hanya boleh diubah sekali.' });
+  });
+});
+
+describe('validasiUpdateSumberNota', () => {
+  test('merapikan nama vendor', () => {
+    assert.equal(validasiUpdateSumberNota({ sumber: '  Toko Contoh  ' }), 'Toko Contoh');
+  });
+
+  test('menolak vendor kosong', () => {
+    assert.throws(() => validasiUpdateSumberNota({ sumber: '  ' }), { message: 'Nama toko atau vendor wajib diisi.' });
   });
 });
