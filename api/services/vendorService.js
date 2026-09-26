@@ -6,6 +6,8 @@ const ALIAS_VENDOR = new Map([
   ['bms', 'BMS'],
   ['bsm', 'BMS'],
   ['cv berkah manis', 'BMS'],
+  ['cv berkah manis sejahtera', 'BMS'],
+  ['cv. berkah manis sejahtera', 'BMS'],
   ['manna kampus', 'Mirota'],
 ]);
 
