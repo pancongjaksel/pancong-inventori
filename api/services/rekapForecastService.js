@@ -1,6 +1,12 @@
 const { pool } = require('../db/pool');
 const ExcelJS = require('exceljs');
 
+function tanggalIso(nilai) {
+  if (!nilai) return null;
+  if (nilai instanceof Date) return nilai.toISOString().slice(0, 10);
+  return String(nilai).slice(0, 10);
+}
+
 /**
  * Rekap SO bulanan gabungan gudang + outlet, plus forecast kebutuhan
  * pembelian bulan berikutnya. Saat histori belum mencapai 3 bulan penuh,
@@ -64,9 +70,9 @@ async function generateRekapForecast(periode) {
     );
     const metadata = metadataRows[0];
     const pakaiRataRata3Bulan = metadata?.awal_data && Number(metadata.bulan_lengkap) >= 3;
-    const awalObservasi = metadata?.awal_data ? String(metadata.awal_data).slice(0, 10) : null;
-    const akhirObservasi = metadata?.akhir_observasi ? String(metadata.akhir_observasi).slice(0, 10) : null;
-    const tanggalDataTerakhir = metadata?.tanggal_data_terakhir ? String(metadata.tanggal_data_terakhir).slice(0, 10) : null;
+    const awalObservasi = tanggalIso(metadata?.awal_data);
+    const akhirObservasi = tanggalIso(metadata?.akhir_observasi);
+    const tanggalDataTerakhir = tanggalIso(metadata?.tanggal_data_terakhir);
     const hariObservasi = Number(metadata?.hari_observasi ?? 0);
 
     const { rows: rataPemakaian } = await client.query(
