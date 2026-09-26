@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, authStorage, ApiError } from '../api/client';
 import UploadFoto from '../components/UploadFoto';
+import VendorField from '../components/VendorField';
 
 export default function BarangMasukCrew() {
   const navigate = useNavigate();
@@ -11,6 +12,9 @@ export default function BarangMasukCrew() {
   const [sukses, setSukses] = useState(false);
 
   const [sumber, setSumber] = useState('');
+  const [vendors, setVendors] = useState([]);
+  const [vendorId, setVendorId] = useState('');
+  const [vendorBaru, setVendorBaru] = useState('');
   const [fotoBuktiUrl, setFotoBuktiUrl] = useState('');
   const [daftarItem, setDaftarItem] = useState([{ itemId: '', jumlah: '', satuan: '' }]);
 
@@ -19,7 +23,7 @@ export default function BarangMasukCrew() {
       navigate('/setup-device');
       return;
     }
-    api.get('/master/items').then(setItems).catch(() => {});
+    Promise.all([api.get('/master/items'), api.get('/master/vendors')]).then(([i, v]) => { setItems(i); setVendors(v); }).catch(() => {});
   }, [navigate]);
 
   function ubahBaris(idx, patch) {
@@ -45,7 +49,8 @@ export default function BarangMasukCrew() {
     setLoading(true);
     try {
       await api.post('/barang-masuk-nota/crew', {
-        sumber: sumber || undefined,
+        vendorId: vendorId === '__baru__' ? undefined : Number(vendorId),
+        vendorBaru: vendorId === '__baru__' ? vendorBaru : undefined,
         fotoBuktiUrl,
         items: daftarItem.map((row) => ({
           itemId: Number(row.itemId),
@@ -63,13 +68,14 @@ export default function BarangMasukCrew() {
 
   function mulaiLagi() {
     setSumber('');
+    setVendorId(''); setVendorBaru('');
     setFotoBuktiUrl('');
     setDaftarItem([{ itemId: '', jumlah: '', satuan: '' }]);
     setSukses(false);
   }
 
   const semuaBarisValid = daftarItem.every((row) => row.itemId && Number(row.jumlah) > 0 && row.satuan.trim());
-  const bisaKirim = fotoBuktiUrl && semuaBarisValid && daftarItem.length > 0;
+  const bisaKirim = fotoBuktiUrl && semuaBarisValid && daftarItem.length > 0 && vendorId && (vendorId !== '__baru__' || vendorBaru.trim());
 
   if (sukses) {
     return (
@@ -95,15 +101,7 @@ export default function BarangMasukCrew() {
       {error && <div className="pesan-error">{error}</div>}
 
       <form onSubmit={submit}>
-        <div className="field">
-          <label className="label">Dari supplier (opsional, berlaku untuk semua item)</label>
-          <input
-            className="input-teks"
-            placeholder="mis. Toko Sumber Rejeki"
-            value={sumber}
-            onChange={(e) => setSumber(e.target.value)}
-          />
-        </div>
+        <VendorField vendors={vendors} vendorId={vendorId} setVendorId={setVendorId} vendorBaru={vendorBaru} setVendorBaru={setVendorBaru} />
 
         <p className="label" style={{ marginTop: 16, marginBottom: 8 }}>Daftar Item ({daftarItem.length})</p>
 

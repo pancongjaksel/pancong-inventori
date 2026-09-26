@@ -10,9 +10,10 @@ const {
 } = require('../validators/barangMasukNotaValidator');
 const { beginIdempotent, finishIdempotent } = require('./idempotencyService');
 const { AppError } = require('../errors/AppError');
+const { resolveVendor } = require('./vendorService');
 
 async function buatNotaAdmin(input) {
-  const { gudangId, items, sumber, fotoBuktiUrl, adminUserId, tanggal } = input;
+  const { gudangId, items, sumber, vendorId, vendorBaru, fotoBuktiUrl, adminUserId, tanggal } = input;
   const idempotencyKey = input.idempotencyKey;
 
   validasiFieldNota({ items, fotoBuktiUrl });
@@ -23,6 +24,7 @@ async function buatNotaAdmin(input) {
     const idem = await beginIdempotent(client, { key: idempotencyKey, actorType: 'user', actorId: adminUserId, endpoint: '/api/barang-masuk-nota/admin', body: input });
     if (idem.duplicate) { await client.query('ROLLBACK'); return idem.response_body; }
     await validasiInputAdminNota(client, { userId: adminUserId, gudangId });
+    const vendor = await resolveVendor(client, { vendorId, vendorBaru, sumberLegacy: sumber });
 
     // Nota diinsert dulu sebagai 'menunggu' (BUKAN langsung 'terverifikasi') karena
     // trigger fn_transaksi_masuk_nota_ke_ledger jalan AFTER INSERT dan butuh baris
@@ -33,11 +35,11 @@ async function buatNotaAdmin(input) {
     // sama persis pola yang dipakai verifikasiNota() buat aksi 'setujui'.
     const { rows } = await client.query(
       `INSERT INTO transaksi_masuk_nota
-         (gudang_id, sumber, foto_bukti_url, diinput_oleh_role, diinput_oleh_user_id,
+         (gudang_id, sumber, vendor_id, foto_bukti_url, diinput_oleh_role, diinput_oleh_user_id,
          status_verifikasi, tanggal, sumber_transaksi, dibuat_oleh_user_id, versi_transaksi)
-       VALUES ($1, $2, $3, 'admin', $4, 'menunggu', COALESCE($5, CURRENT_DATE), 'admin', $4, 1)
+       VALUES ($1, $2, $3, $4, 'admin', $5, 'menunggu', COALESCE($6, CURRENT_DATE), 'admin', $5, 1)
        RETURNING id`,
-      [gudangId, sumber ?? null, fotoBuktiUrl, adminUserId, tanggal ?? null]
+      [gudangId, vendor.sumber, vendor.vendorId, fotoBuktiUrl, adminUserId, tanggal ?? null]
     );
     const notaId = rows[0].id;
 
@@ -76,7 +78,7 @@ async function buatNotaAdmin(input) {
  * kayak nota dari crew.
  */
 async function buatNotaAdminGudang(input) {
-  const { gudangId, items, sumber, fotoBuktiUrl, adminGudangUserId, tanggal } = input;
+  const { gudangId, items, sumber, vendorId, vendorBaru, fotoBuktiUrl, adminGudangUserId, tanggal } = input;
   const idempotencyKey = input.idempotencyKey;
 
   validasiFieldNota({ items, fotoBuktiUrl });
@@ -87,13 +89,14 @@ async function buatNotaAdminGudang(input) {
     const idem = await beginIdempotent(client, { key: idempotencyKey, actorType: 'user', actorId: adminGudangUserId, endpoint: '/api/barang-masuk-nota/admin-gudang', body: input });
     if (idem.duplicate) { await client.query('ROLLBACK'); return idem.response_body; }
     await validasiInputAdminGudangNota(client, { userId: adminGudangUserId, gudangId });
+    const vendor = await resolveVendor(client, { vendorId, vendorBaru, sumberLegacy: sumber });
 
     const { rows } = await client.query(
       `INSERT INTO transaksi_masuk_nota
-         (gudang_id, sumber, foto_bukti_url, diinput_oleh_role, diinput_oleh_user_id, status_verifikasi, tanggal, sumber_transaksi, dibuat_oleh_user_id, versi_transaksi)
-       VALUES ($1, $2, $3, 'admin', $4, 'menunggu', COALESCE($5, CURRENT_DATE), 'admin_gudang', $4, 1)
+         (gudang_id, sumber, vendor_id, foto_bukti_url, diinput_oleh_role, diinput_oleh_user_id, status_verifikasi, tanggal, sumber_transaksi, dibuat_oleh_user_id, versi_transaksi)
+       VALUES ($1, $2, $3, $4, 'admin', $5, 'menunggu', COALESCE($6, CURRENT_DATE), 'admin_gudang', $5, 1)
        RETURNING id`,
-      [gudangId, sumber ?? null, fotoBuktiUrl, adminGudangUserId, tanggal ?? null]
+      [gudangId, vendor.sumber, vendor.vendorId, fotoBuktiUrl, adminGudangUserId, tanggal ?? null]
     );
     const notaId = rows[0].id;
 
@@ -118,7 +121,7 @@ async function buatNotaAdminGudang(input) {
 }
 
 async function buatNotaCrew(input) {
-  const { gudangId, items, sumber, fotoBuktiUrl, namaCrewInput, tanggal } = input;
+  const { gudangId, items, sumber, vendorId, vendorBaru, fotoBuktiUrl, namaCrewInput, tanggal } = input;
   const idempotencyKey = input.idempotencyKey;
 
   validasiFieldNota({ items, fotoBuktiUrl });
@@ -129,13 +132,14 @@ async function buatNotaCrew(input) {
     const idem = await beginIdempotent(client, { key: idempotencyKey, actorType: 'crew', actorId: input.crewId ?? `legacy:${namaCrewInput}`, endpoint: '/api/barang-masuk-nota/crew', body: input });
     if (idem.duplicate) { await client.query('ROLLBACK'); return idem.response_body; }
     await validasiInputCrewNota(client, { gudangId, namaCrewInput });
+    const vendor = await resolveVendor(client, { vendorId, vendorBaru, sumberLegacy: sumber });
 
     const { rows } = await client.query(
       `INSERT INTO transaksi_masuk_nota
-         (gudang_id, sumber, foto_bukti_url, diinput_oleh_role, nama_crew_input, status_verifikasi, tanggal, dibuat_oleh_crew_id, crew_session_id, sumber_transaksi, versi_transaksi)
-       VALUES ($1, $2, $3, 'crew', $4, 'menunggu', COALESCE($5, CURRENT_DATE), $6, $7, 'crew', 1)
+         (gudang_id, sumber, vendor_id, foto_bukti_url, diinput_oleh_role, nama_crew_input, status_verifikasi, tanggal, dibuat_oleh_crew_id, crew_session_id, sumber_transaksi, versi_transaksi)
+       VALUES ($1, $2, $3, $4, 'crew', $5, 'menunggu', COALESCE($6, CURRENT_DATE), $7, $8, 'crew', 1)
        RETURNING id`,
-      [gudangId, sumber ?? null, fotoBuktiUrl, namaCrewInput.trim(), tanggal ?? null, input.crewId ?? null, input.crewSessionId ?? null]
+      [gudangId, vendor.sumber, vendor.vendorId, fotoBuktiUrl, namaCrewInput.trim(), tanggal ?? null, input.crewId ?? null, input.crewSessionId ?? null]
     );
     const notaId = rows[0].id;
 

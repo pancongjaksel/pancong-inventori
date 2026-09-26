@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api, ApiError } from '../../api/client';
 import UploadFoto from '../../components/UploadFoto';
+import VendorField from '../../components/VendorField';
 
 export default function BarangMasukAdminGudang() {
   const [items, setItems] = useState([]);
@@ -11,12 +12,15 @@ export default function BarangMasukAdminGudang() {
 
   const [gudangId, setGudangId] = useState('');
   const [sumber, setSumber] = useState('');
+  const [vendors, setVendors] = useState([]);
+  const [vendorId, setVendorId] = useState('');
+  const [vendorBaru, setVendorBaru] = useState('');
   const [fotoBuktiUrl, setFotoBuktiUrl] = useState('');
   const [daftarItem, setDaftarItem] = useState([{ itemId: '', jumlah: '', satuan: '' }]);
 
   useEffect(() => {
-    Promise.all([api.get('/master/items'), api.get('/master/gudangs')])
-      .then(([i, g]) => { setItems(i); setGudangs(g); })
+    Promise.all([api.get('/master/items'), api.get('/master/gudangs'), api.get('/master/vendors')])
+      .then(([i, g, v]) => { setItems(i); setGudangs(g); setVendors(v); })
       .catch((err) => setError(err instanceof ApiError ? err.message : 'Gagal memuat data.'));
   }, []);
 
@@ -45,7 +49,8 @@ export default function BarangMasukAdminGudang() {
     try {
       await api.post('/barang-masuk-nota/admin-gudang', {
         gudangId: Number(gudangId),
-        sumber: sumber || undefined,
+        vendorId: vendorId === '__baru__' ? undefined : Number(vendorId),
+        vendorBaru: vendorId === '__baru__' ? vendorBaru : undefined,
         fotoBuktiUrl,
         items: daftarItem.map((row) => ({
           itemId: Number(row.itemId),
@@ -56,6 +61,7 @@ export default function BarangMasukAdminGudang() {
       setSukses('Nota terkirim, menunggu diverifikasi Admin/Owner sebelum stok bertambah.');
       setGudangId('');
       setSumber('');
+      setVendorId(''); setVendorBaru('');
       setFotoBuktiUrl('');
       setDaftarItem([{ itemId: '', jumlah: '', satuan: '' }]);
     } catch (err) {
@@ -66,7 +72,7 @@ export default function BarangMasukAdminGudang() {
   }
 
   const semuaBarisValid = daftarItem.every((row) => row.itemId && Number(row.jumlah) > 0 && row.satuan.trim());
-  const bisaKirim = gudangId && fotoBuktiUrl && semuaBarisValid && daftarItem.length > 0;
+  const bisaKirim = gudangId && fotoBuktiUrl && semuaBarisValid && daftarItem.length > 0 && vendorId && (vendorId !== '__baru__' || vendorBaru.trim());
 
   const hintKirim = !gudangId
     ? 'Pilih gudang tujuan dulu'
@@ -90,10 +96,7 @@ export default function BarangMasukAdminGudang() {
           </select>
         </div>
 
-        <div className="field">
-          <label className="label">Dari supplier (opsional)</label>
-          <input className="input-teks" placeholder="Nama supplier / distributor" value={sumber} onChange={(e) => setSumber(e.target.value)} />
-        </div>
+        <VendorField vendors={vendors} vendorId={vendorId} setVendorId={setVendorId} vendorBaru={vendorBaru} setVendorBaru={setVendorBaru} />
 
         <div style={{ borderTop: '1px solid var(--warna-garis)', margin: '4px 0 16px' }} />
         <p className="label" style={{ marginBottom: 10 }}>Daftar Item ({daftarItem.length})</p>

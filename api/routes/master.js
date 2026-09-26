@@ -88,6 +88,16 @@ router.get('/gudangs', requireAnyAuth, async (req, res, next) => {
   }
 });
 
+/** GET /api/master/vendors — daftar vendor aktif untuk form barang masuk. */
+router.get('/vendors', requireAnyAuth, async (req, res, next) => {
+  try {
+    const { rows } = await pool.query('SELECT id, nama FROM vendor WHERE aktif = true ORDER BY nama');
+    res.status(200).json({ sukses: true, data: rows });
+  } catch (err) {
+    next(err);
+  }
+});
+
 /** GET /api/master/items-outlet — item relevan untuk opname outlet (Topping, Kemasan, Pandan Pasta) */
 router.get('/items-outlet', requireAnyAuth, async (req, res, next) => {
   try {

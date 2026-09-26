@@ -53,6 +53,7 @@ async function getLaporanBelanjaBulanan({ periode, gudangId }) {
      JOIN item i ON i.id = tmi.item_id
      JOIN gudang g ON g.id = n.gudang_id
      WHERE n.status_verifikasi = 'terverifikasi'
+       AND n.jenis_penerimaan = 'pembelian'
        AND n.label_status IS DISTINCT FROM 'Dikoreksi'
        AND n.tanggal >= $1::date
        AND n.tanggal < ($1::date + INTERVAL '1 month')

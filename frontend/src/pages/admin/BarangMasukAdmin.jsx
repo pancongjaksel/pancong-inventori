@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api, ApiError } from '../../api/client';
 import UploadFoto from '../../components/UploadFoto';
+import VendorField from '../../components/VendorField';
 
 export default function BarangMasukAdmin() {
   const [items, setItems] = useState([]);
@@ -11,12 +12,15 @@ export default function BarangMasukAdmin() {
 
   const [gudangId, setGudangId] = useState('');
   const [sumber, setSumber] = useState('');
+  const [vendors, setVendors] = useState([]);
+  const [vendorId, setVendorId] = useState('');
+  const [vendorBaru, setVendorBaru] = useState('');
   const [fotoBuktiUrl, setFotoBuktiUrl] = useState('');
   const [daftarItem, setDaftarItem] = useState([{ itemId: '', jumlah: '', satuan: '', hargaBeli: '' }]);
 
   useEffect(() => {
-    Promise.all([api.get('/master/items'), api.get('/master/gudangs')])
-      .then(([i, g]) => { setItems(i); setGudangs(g); })
+    Promise.all([api.get('/master/items'), api.get('/master/gudangs'), api.get('/master/vendors')])
+      .then(([i, g, v]) => { setItems(i); setGudangs(g); setVendors(v); })
       .catch((err) => setError(err instanceof ApiError ? err.message : 'Gagal memuat data.'));
   }, []);
 
@@ -45,7 +49,8 @@ export default function BarangMasukAdmin() {
     try {
       await api.post('/barang-masuk-nota/admin', {
         gudangId: Number(gudangId),
-        sumber: sumber || undefined,
+        vendorId: vendorId === '__baru__' ? undefined : Number(vendorId),
+        vendorBaru: vendorId === '__baru__' ? vendorBaru : undefined,
         fotoBuktiUrl,
         items: daftarItem.map((row) => ({
           itemId: Number(row.itemId),
@@ -57,6 +62,7 @@ export default function BarangMasukAdmin() {
       setSukses('Nota tersimpan & langsung terverifikasi. Stok semua item sudah bertambah.');
       setGudangId('');
       setSumber('');
+      setVendorId(''); setVendorBaru('');
       setFotoBuktiUrl('');
       setDaftarItem([{ itemId: '', jumlah: '', satuan: '', hargaBeli: '' }]);
     } catch (err) {
@@ -67,7 +73,7 @@ export default function BarangMasukAdmin() {
   }
 
   const semuaBarisValid = daftarItem.every((row) => row.itemId && Number(row.jumlah) > 0 && row.satuan.trim());
-  const bisaKirim = gudangId && fotoBuktiUrl && semuaBarisValid && daftarItem.length > 0;
+  const bisaKirim = gudangId && fotoBuktiUrl && semuaBarisValid && daftarItem.length > 0 && vendorId && (vendorId !== '__baru__' || vendorBaru.trim());
 
   return (
     <div>
@@ -83,10 +89,7 @@ export default function BarangMasukAdmin() {
           </select>
         </div>
 
-        <div className="field">
-          <label className="label">Dari supplier (opsional, berlaku untuk semua item di nota ini)</label>
-          <input className="input-teks" value={sumber} onChange={(e) => setSumber(e.target.value)} />
-        </div>
+        <VendorField vendors={vendors} vendorId={vendorId} setVendorId={setVendorId} vendorBaru={vendorBaru} setVendorBaru={setVendorBaru} />
 
         <p className="label" style={{ marginTop: 16, marginBottom: 8 }}>Daftar Item ({daftarItem.length})</p>
 
