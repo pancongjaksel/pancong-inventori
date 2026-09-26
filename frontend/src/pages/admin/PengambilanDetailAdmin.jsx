@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { api, ApiError } from '../../api/client';
 
 function waktuFormatted(iso) {
@@ -27,6 +27,8 @@ function AktivitasDot({ tipe }) {
 export default function PengambilanDetailAdmin() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const kembali = () => navigate(location.state?.returnTo || -1);
   const [sesi, setSesi] = useState(null);
   const [aktivitas, setAktivitas] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -83,7 +85,7 @@ export default function PengambilanDetailAdmin() {
     <div className="admin-page">
       <div style={{ padding: 20 }}>
         <button
-          onClick={() => navigate(-1)}
+          onClick={kembali}
           style={{ background: 'none', border: 'none', color: 'var(--warna-karamel)', fontSize: 14, cursor: 'pointer', padding: 0, marginBottom: 16 }}
         >
           ← Kembali
@@ -101,7 +103,7 @@ export default function PengambilanDetailAdmin() {
     <div className="admin-page">
       <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--warna-garis)', display: 'flex', alignItems: 'center', gap: 12 }}>
         <button
-          onClick={() => navigate(-1)}
+          onClick={kembali}
           style={{ background: 'none', border: 'none', color: 'var(--warna-karamel)', fontSize: 20, cursor: 'pointer', padding: 0, lineHeight: 1 }}
         >
           ←

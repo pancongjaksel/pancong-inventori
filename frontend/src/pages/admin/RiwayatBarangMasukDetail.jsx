@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { api, ApiError } from '../../api/client';
 
 function rupiah(nilai) {
@@ -50,6 +50,8 @@ function InfoRow({ label, value }) {
 export default function RiwayatBarangMasukDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const kembali = () => navigate(location.state?.returnTo || -1);
   const [nota, setNota] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -132,7 +134,7 @@ export default function RiwayatBarangMasukDetail() {
   if (error) return (
     <div className="admin-page">
       <div style={{ padding: 20 }}>
-        <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', color: 'var(--warna-karamel)', fontSize: 14, cursor: 'pointer', padding: 0, marginBottom: 16 }}>
+        <button onClick={kembali} style={{ background: 'none', border: 'none', color: 'var(--warna-karamel)', fontSize: 14, cursor: 'pointer', padding: 0, marginBottom: 16 }}>
           ← Kembali
         </button>
         <div className="pesan-error">{error}</div>
@@ -148,7 +150,7 @@ export default function RiwayatBarangMasukDetail() {
     <div className="admin-page">
       <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--warna-garis)', display: 'flex', alignItems: 'center', gap: 12 }}>
         <button
-          onClick={() => navigate(-1)}
+          onClick={kembali}
           style={{ background: 'none', border: 'none', color: 'var(--warna-karamel)', fontSize: 20, cursor: 'pointer', padding: 0, lineHeight: 1 }}
         >
           ←

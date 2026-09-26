@@ -1,6 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { api, ApiError } from '../../api/client';
+import { alamatKembali, useUrlFilterDraft } from '../../useUrlFilterDraft';
+
+const FILTER_FIELDS = [{ key: 'search' }, { key: 'dari' }, { key: 'sampai' }];
 
 function formatTanggal(iso) {
   return new Date(iso).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -24,12 +27,11 @@ function StatusChip({ label }) {
 
 export default function RiwayatPengambilan() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [search, setSearch] = useState('');
-  const [dari, setDari] = useState('');
-  const [sampai, setSampai] = useState('');
+  const { draft, setDraft, filters, terapkan, reset, adaFilter } = useUrlFilterDraft(FILTER_FIELDS);
   const [offset, setOffset] = useState(0);
 
   const muat = useCallback(async (off = 0) => {
@@ -37,9 +39,9 @@ export default function RiwayatPengambilan() {
     setError(null);
     try {
       const params = new URLSearchParams({ limit: 50, offset: off });
-      if (search) params.set('search', search);
-      if (dari) params.set('dari', dari);
-      if (sampai) params.set('sampai', sampai);
+      if (filters.search) params.set('search', filters.search);
+      if (filters.dari) params.set('dari', filters.dari);
+      if (filters.sampai) params.set('sampai', filters.sampai);
       const rows = await api.get(`/sesi-pengambilan-crew?${params}`);
       setData(Array.isArray(rows) ? rows : []);
       setOffset(off);
@@ -48,7 +50,7 @@ export default function RiwayatPengambilan() {
     } finally {
       setLoading(false);
     }
-  }, [search, dari, sampai]);
+  }, [filters]);
 
   useEffect(() => { muat(0); }, [muat]);
 
@@ -60,21 +62,22 @@ export default function RiwayatPengambilan() {
           className="input-teks"
           type="search"
           placeholder="Cari crew atau outlet..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && muat(0)}
+          value={draft.search}
+          onChange={(e) => setDraft((sebelumnya) => ({ ...sebelumnya, search: e.target.value }))}
+          onKeyDown={(e) => e.key === 'Enter' && terapkan()}
           style={{ height: 40, fontSize: 13, flex: '1 1 160px', minWidth: 120 }}
         />
-        <input type="date" value={dari} onChange={(e) => setDari(e.target.value)}
+        <input type="date" value={draft.dari} onChange={(e) => setDraft((sebelumnya) => ({ ...sebelumnya, dari: e.target.value }))}
           style={{ height: 40, borderRadius: 8, border: '1.5px solid var(--warna-garis)', padding: '0 10px', fontSize: 13, color: 'var(--warna-arang)' }} />
-        <input type="date" value={sampai} onChange={(e) => setSampai(e.target.value)}
+        <input type="date" value={draft.sampai} onChange={(e) => setDraft((sebelumnya) => ({ ...sebelumnya, sampai: e.target.value }))}
           style={{ height: 40, borderRadius: 8, border: '1.5px solid var(--warna-garis)', padding: '0 10px', fontSize: 13, color: 'var(--warna-arang)' }} />
         <button
-          onClick={() => muat(0)}
+          onClick={() => terapkan()}
           style={{ height: 40, padding: '0 16px', borderRadius: 8, border: 'none', background: 'var(--warna-arang)', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
         >
           Filter
         </button>
+        {adaFilter && <button onClick={reset} style={{ height: 40, padding: '0 12px', borderRadius: 8, border: '1.5px solid var(--warna-garis)', background: 'white', fontSize: 13, cursor: 'pointer' }}>Reset</button>}
       </div>
 
       {error && <div className="pesan-error" style={{ margin: '0 16px 10px' }}>{error}</div>}
@@ -90,7 +93,7 @@ export default function RiwayatPengambilan() {
           {data.map((sesi) => (
             <button
               key={sesi.id}
-              onClick={() => navigate(`/admin/riwayat-pengambilan/${sesi.id}`)}
+              onClick={() => navigate(`/admin/riwayat-pengambilan/${sesi.id}`, { state: { returnTo: alamatKembali(location) } })}
               style={{
                 textAlign: 'left', background: 'white',
                 border: '1px solid var(--warna-garis)', borderRadius: 12, padding: '14px', cursor: 'pointer',

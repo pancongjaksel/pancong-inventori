@@ -1,14 +1,19 @@
 import { useState, useEffect, useMemo } from 'react';
 import { api, ApiError, authStorage } from '../../api/client';
+import { useUrlFilterDraft } from '../../useUrlFilterDraft';
+
+const FILTER_FIELDS = [
+  { key: 'gudang', defaultValue: 'semua' },
+  { key: 'dari' },
+  { key: 'sampai' },
+];
 
 export default function RiwayatPenyesuaian() {
   const isAdminGudang = authStorage.ambilDeviceRole() === 'admin_gudang';
 
   const [data, setData] = useState([]);
   const [gudangs, setGudangs] = useState([]);
-  const [gudangFilter, setGudangFilter] = useState('semua');
-  const [dariTanggal, setDariTanggal] = useState('');
-  const [sampaiTanggal, setSampaiTanggal] = useState('');
+  const { draft, filters, terapkan, reset, adaFilter } = useUrlFilterDraft(FILTER_FIELDS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -31,9 +36,9 @@ export default function RiwayatPenyesuaian() {
       setError('');
       try {
         const params = new URLSearchParams();
-        if (gudangFilter !== 'semua') params.set('gudang_id', gudangFilter);
-        if (dariTanggal) params.set('dari_tanggal', dariTanggal);
-        if (sampaiTanggal) params.set('sampai_tanggal', sampaiTanggal);
+        if (filters.gudang !== 'semua') params.set('gudang_id', filters.gudang);
+        if (filters.dari) params.set('dari_tanggal', filters.dari);
+        if (filters.sampai) params.set('sampai_tanggal', filters.sampai);
         const hasil = await api.get(`/laporan/riwayat-penyesuaian?${params.toString()}`);
         setData(Array.isArray(hasil) ? hasil : []);
       } catch (err) {
@@ -42,7 +47,7 @@ export default function RiwayatPenyesuaian() {
         setLoading(false);
       }
     })();
-  }, [isAdminGudang, gudangFilter, dariTanggal, sampaiTanggal]);
+  }, [isAdminGudang, filters]);
 
   const totalSelisih = useMemo(
     () => data.reduce((sum, r) => sum + Math.abs(Number(r.selisih) || 0), 0),
@@ -66,15 +71,16 @@ export default function RiwayatPenyesuaian() {
       </p>
 
       <div className="riwayat-filter">
-        <select className="input-teks" value={gudangFilter} onChange={(e) => setGudangFilter(e.target.value)} style={{ padding: '0 12px' }}>
+        <select className="input-teks" value={draft.gudang} onChange={(e) => terapkan({ ...draft, gudang: e.target.value })} style={{ padding: '0 12px' }}>
           <option value="semua">Semua Gudang</option>
           {gudangs.map((g) => (
             <option key={g.id} value={g.id}>Gudang {g.nama}</option>
           ))}
         </select>
-        <input type="date" className="input-teks" value={dariTanggal} onChange={(e) => setDariTanggal(e.target.value)} />
+        <input type="date" className="input-teks" value={draft.dari} onChange={(e) => terapkan({ ...draft, dari: e.target.value })} />
         <span className="riwayat-filter__pemisah" style={{ alignSelf: 'center' }}>s/d</span>
-        <input type="date" className="input-teks" value={sampaiTanggal} onChange={(e) => setSampaiTanggal(e.target.value)} />
+        <input type="date" className="input-teks" value={draft.sampai} onChange={(e) => terapkan({ ...draft, sampai: e.target.value })} />
+        {adaFilter && <button className="tombol tombol--sekunder" style={{ width: 'auto', padding: '0 12px' }} onClick={reset}>Reset</button>}
       </div>
 
       {loading && <p>Memuat data...</p>}

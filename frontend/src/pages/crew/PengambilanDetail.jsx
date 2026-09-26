@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { api, ApiError } from '../../api/client';
 
 function waktuFormatted(iso) {
@@ -27,6 +27,8 @@ function AktivitasDot({ tipe }) {
 export default function PengambilanDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const kembali = () => navigate(location.state?.returnTo || -1);
   const [sesi, setSesi] = useState(null);
   const [aktivitas, setAktivitas] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -56,7 +58,7 @@ export default function PengambilanDetail() {
     <div className="mobile-page">
       <div className="mobile-page__content">
         <button
-          onClick={() => navigate(-1)}
+          onClick={kembali}
           style={{ background: 'none', border: 'none', color: 'var(--warna-karamel)', fontSize: 14, cursor: 'pointer', padding: 0, marginBottom: 16 }}
         >
           ← Kembali
@@ -75,7 +77,7 @@ export default function PengambilanDetail() {
       {/* Dark header */}
       <div style={{ background: 'var(--warna-arang)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
         <button
-          onClick={() => navigate(-1)}
+          onClick={kembali}
           style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 8, width: 36, height: 36, color: 'white', fontSize: 20, cursor: 'pointer', flexShrink: 0 }}
         >
           ‹

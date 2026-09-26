@@ -1,8 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { api, ApiError } from '../api/client';
+import { alamatKembali, useUrlFilterDraft } from '../useUrlFilterDraft';
 
 const PAGE_SIZE = 50;
+const FILTER_FIELDS = [{ key: 'filter', defaultValue: 'semua' }];
 
 function waktuFormatted(iso) {
   const d = new Date(iso);
@@ -31,8 +33,10 @@ function StatusChip({ label }) {
 
 export default function CrewRiwayat() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [sesiList, setSesiList] = useState([]);
-  const [filter, setFilter] = useState('semua');
+  const { draft, filters, terapkan } = useUrlFilterDraft(FILTER_FIELDS);
+  const filter = filters.filter;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [offset, setOffset] = useState(0);
@@ -79,7 +83,7 @@ export default function CrewRiwayat() {
             ].map(({ key, label }) => (
               <button
                 key={key}
-                onClick={() => setFilter(key)}
+                onClick={() => terapkan({ ...draft, filter: key })}
                 style={{
                   padding: '6px 14px', borderRadius: 16, fontSize: 12, fontWeight: 600,
                   border: filter === key ? 'none' : '1.5px solid var(--warna-garis)',
@@ -130,7 +134,7 @@ export default function CrewRiwayat() {
             {sesiList.map((sesi) => (
               <button
                 key={sesi.id}
-                onClick={() => navigate(`/crew/riwayat/${sesi.id}`)}
+                onClick={() => navigate(`/crew/riwayat/${sesi.id}`, { state: { returnTo: alamatKembali(location) } })}
                 style={{
                   width: '100%', textAlign: 'left',
                   background: 'white', border: '1px solid var(--warna-garis)',

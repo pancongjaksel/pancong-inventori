@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { api, ApiError } from '../../api/client';
+import { alamatKembali, useUrlFilterDraft } from '../../useUrlFilterDraft';
 
 const PAGE_SIZE = 50;
+const FILTER_FIELDS = [{ key: 'search' }, { key: 'dari' }, { key: 'sampai' }];
 
 function waktuFormatted(iso) {
   if (!iso) return '-';
@@ -31,24 +33,22 @@ export default function RiwayatBarangMasuk() {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [cari, setCari] = useState('');
-  const [dari, setDari] = useState('');
-  const [sampai, setSampai] = useState('');
+  const { draft, setDraft, filters, terapkan, reset, adaFilter } = useUrlFilterDraft(FILTER_FIELDS);
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(false);
 
-  const muat = useCallback(async (reset = false) => {
-      const mulai = reset ? 0 : offset;
+  const muat = useCallback(async (resetList = false) => {
+      const mulai = resetList ? 0 : offset;
       setLoading(true);
       setError(null);
       try {
         const params = new URLSearchParams({ status: 'semua', limit: String(PAGE_SIZE), offset: String(mulai) });
-        if (cari.trim()) params.set('search', cari.trim());
-        if (dari) params.set('dari', dari);
-        if (sampai) params.set('sampai', sampai);
+        if (filters.search) params.set('search', filters.search);
+        if (filters.dari) params.set('dari', filters.dari);
+        if (filters.sampai) params.set('sampai', filters.sampai);
         const hasil = await api.get(`/barang-masuk-nota?${params}`);
         const rows = Array.isArray(hasil) ? hasil : [];
-        setList((sebelumnya) => reset ? rows : [...sebelumnya, ...rows]);
+        setList((sebelumnya) => resetList ? rows : [...sebelumnya, ...rows]);
         setOffset(mulai + rows.length);
         setHasMore(rows.length === PAGE_SIZE);
       } catch (err) {
@@ -56,9 +56,9 @@ export default function RiwayatBarangMasuk() {
       } finally {
         setLoading(false);
       }
-  }, [cari, dari, sampai, offset]);
+  }, [filters, offset]);
 
-  useEffect(() => { muat(true); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { muat(true); }, [filters]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="admin-page">
@@ -70,9 +70,9 @@ export default function RiwayatBarangMasuk() {
           <input
             type="text"
             placeholder="Cari gudang, sumber, penginput..."
-            value={cari}
-            onChange={(e) => setCari(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && muat(true)}
+            value={draft.search}
+            onChange={(e) => setDraft((sebelumnya) => ({ ...sebelumnya, search: e.target.value }))}
+            onKeyDown={(e) => e.key === 'Enter' && terapkan()}
             style={{
               flex: '1 1 180px', height: 38, borderRadius: 8,
               border: '1.5px solid var(--warna-garis)', padding: '0 12px',
@@ -81,23 +81,24 @@ export default function RiwayatBarangMasuk() {
           />
           <input
             type="date"
-            value={dari}
-            onChange={(e) => setDari(e.target.value)}
+            value={draft.dari}
+            onChange={(e) => setDraft((sebelumnya) => ({ ...sebelumnya, dari: e.target.value }))}
             style={{
               height: 38, borderRadius: 8, border: '1.5px solid var(--warna-garis)',
               padding: '0 10px', fontSize: 13, color: 'var(--warna-arang)', outline: 'none',
             }}
           />
-          <button className="tombol tombol--primer" onClick={() => muat(true)}>Filter</button>
+          <button className="tombol tombol--primer" onClick={() => terapkan()}>Filter</button>
           <input
             type="date"
-            value={sampai}
-            onChange={(e) => setSampai(e.target.value)}
+            value={draft.sampai}
+            onChange={(e) => setDraft((sebelumnya) => ({ ...sebelumnya, sampai: e.target.value }))}
             style={{
               height: 38, borderRadius: 8, border: '1.5px solid var(--warna-garis)',
               padding: '0 10px', fontSize: 13, color: 'var(--warna-arang)', outline: 'none',
             }}
           />
+          {adaFilter && <button className="tombol tombol--sekunder" onClick={reset}>Reset</button>}
         </div>
       </div>
 
@@ -119,7 +120,7 @@ export default function RiwayatBarangMasuk() {
               return (
                 <button
                   key={row.id}
-                  onClick={() => navigate(`${basePath}/riwayat-barang-masuk/${row.id}`)}
+                  onClick={() => navigate(`${basePath}/riwayat-barang-masuk/${row.id}`, { state: { returnTo: alamatKembali(location) } })}
                   style={{
                     width: '100%', textAlign: 'left', background: 'white',
                     border: '1px solid var(--warna-garis)', borderRadius: 12,
