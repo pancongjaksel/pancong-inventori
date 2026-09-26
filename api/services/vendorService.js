@@ -1,5 +1,14 @@
 const { AppError } = require('../errors/AppError');
 
+// Alias yang sudah dikonfirmasi owner. Dipakai saat vendor baru diketik agar
+// variasi penulisan tidak membuat master vendor terpecah lagi.
+const ALIAS_VENDOR = new Map([
+  ['bms', 'BMS'],
+  ['bsm', 'BMS'],
+  ['cv berkah manis', 'BMS'],
+  ['manna kampus', 'Mirota'],
+]);
+
 function normalisasiNamaVendor(nilai) {
   return String(nilai ?? '').trim().replace(/\s+/g, ' ');
 }
@@ -11,7 +20,8 @@ async function resolveVendor(client, { vendorId, vendorBaru, sumberLegacy }) {
     return { vendorId: rows[0].id, sumber: rows[0].nama };
   }
 
-  const nama = normalisasiNamaVendor(vendorBaru || sumberLegacy);
+  const inputNama = normalisasiNamaVendor(vendorBaru || sumberLegacy);
+  const nama = ALIAS_VENDOR.get(inputNama.toLowerCase()) || inputNama;
   if (!nama) throw new AppError('Pilih vendor atau isi nama vendor baru.', 400, 'VENDOR_WAJIB');
   if (nama.length > 150) throw new AppError('Nama vendor maksimal 150 karakter.', 400, 'VENDOR_TERLALU_PANJANG');
   const normalized = nama.toLowerCase();
