@@ -358,16 +358,20 @@ async function updateSumberNota({ id, sumber, adminUserId }) {
     }
 
     const sumberSebelum = nota.sumber?.trim() || null;
-    if (sumberSebelum === sumberBaru) {
+    const vendor = await resolveVendor(client, { vendorBaru: sumberBaru });
+    if (sumberSebelum === vendor.sumber) {
       await client.query('COMMIT');
       return { notaId: Number(id), diubah: false };
     }
-    await client.query('UPDATE transaksi_masuk_nota SET sumber = $1 WHERE id = $2', [sumberBaru, id]);
+    await client.query(
+      'UPDATE transaksi_masuk_nota SET sumber = $1, vendor_id = $2 WHERE id = $3',
+      [vendor.sumber, vendor.vendorId, id]
+    );
     await client.query(
       `INSERT INTO transaksi_masuk_sumber_audit
        (nota_id, sumber_sebelum, sumber_sesudah, diubah_oleh_user_id)
        VALUES ($1, $2, $3, $4)`,
-      [id, sumberSebelum, sumberBaru, adminUserId]
+      [id, sumberSebelum, vendor.sumber, adminUserId]
     );
     await client.query('COMMIT');
     return { notaId: Number(id), diubah: true };
