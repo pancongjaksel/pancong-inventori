@@ -3,8 +3,10 @@ const ExcelJS = require('exceljs');
 
 /**
  * Rekap SO bulanan gabungan gudang + outlet, plus forecast kebutuhan
- * pembelian bulan berikutnya berdasarkan rata-rata pemakaian 3 bulan
- * terakhir (keputusan Q5). Ini query read-only, hasilnya JSON terstruktur —
+ * pembelian bulan berikutnya. Saat histori belum mencapai 3 bulan penuh,
+ * perhitungannya memakai laju pemakaian harian dari seluruh histori yang
+ * tersedia; setelah itu beralih otomatis ke rata-rata 3 bulan terakhir.
+ * Ini query read-only, hasilnya JSON terstruktur —
  * konversi ke file .xlsx dilakukan di layer terpisah (mis. pakai `exceljs`
  * di endpoint /export, atau di-generate langsung dari frontend admin).
  *
@@ -37,10 +39,35 @@ async function generateRekapForecast(periode) {
       [periode]
     );
 
-    // 2) Rata-rata pemakaian 3 bulan terakhir per item (semua gudang digabung)
+    // 2) Tentukan histori yang benar-benar tersedia. Pengambilan baru mulai
+    // Agustus 2026, sehingga membagi data awal dengan 3 akan mengecilkan
+    // kebutuhan beli secara keliru. Pada fase awal, pakai laju harian.
     const [tahun, bulan] = periode.split('-').map(Number);
-    const awal3Bulan = new Date(Date.UTC(tahun, bulan - 1, 1));
-    awal3Bulan.setUTCMonth(awal3Bulan.getUTCMonth() - 3);
+    if (!Number.isInteger(tahun) || !Number.isInteger(bulan) || bulan < 1 || bulan > 12) {
+      throw new Error('Periode forecast tidak valid.');
+    }
+    const awalPeriodeBerikutnya = new Date(Date.UTC(tahun, bulan, 1)).toISOString().slice(0, 10);
+    const { rows: metadataRows } = await client.query(
+      `WITH batas AS (
+         SELECT
+           date_trunc('month', MIN(tanggal))::date AS awal_data,
+           LEAST($1::date, CURRENT_DATE + 1) AS akhir_observasi
+         FROM stok_ledger
+         WHERE tipe_pergerakan IN ('keluar_ke_crew', 'produksi_keluar')
+       )
+       SELECT awal_data, akhir_observasi, (akhir_observasi - 1)::date AS tanggal_data_terakhir,
+              GREATEST(0, (EXTRACT(YEAR FROM age(date_trunc('month', akhir_observasi), awal_data)) * 12
+                + EXTRACT(MONTH FROM age(date_trunc('month', akhir_observasi), awal_data)))::integer) AS bulan_lengkap,
+              GREATEST(0, akhir_observasi - awal_data)::integer AS hari_observasi
+       FROM batas`,
+      [awalPeriodeBerikutnya]
+    );
+    const metadata = metadataRows[0];
+    const pakaiRataRata3Bulan = metadata?.awal_data && Number(metadata.bulan_lengkap) >= 3;
+    const awalObservasi = metadata?.awal_data ? String(metadata.awal_data).slice(0, 10) : null;
+    const akhirObservasi = metadata?.akhir_observasi ? String(metadata.akhir_observasi).slice(0, 10) : null;
+    const tanggalDataTerakhir = metadata?.tanggal_data_terakhir ? String(metadata.tanggal_data_terakhir).slice(0, 10) : null;
+    const hariObservasi = Number(metadata?.hari_observasi ?? 0);
 
     const { rows: rataPemakaian } = await client.query(
       `SELECT
@@ -48,17 +75,19 @@ async function generateRekapForecast(periode) {
          i.kode_barang,
          i.nama AS nama_item,
          i.satuan,
-         COALESCE(SUM(-sl.qty_delta), 0) / 3.0 AS rata_pemakaian_per_bulan
+         COALESCE(SUM(-sl.qty_delta), 0) /
+           CASE WHEN $3::boolean THEN 3.0 ELSE NULLIF($4::numeric, 0) END *
+           CASE WHEN $3::boolean THEN 1.0 ELSE $5::numeric END AS rata_pemakaian_per_bulan
        FROM item i
        LEFT JOIN stok_ledger sl
          ON sl.item_id = i.id
          AND sl.tipe_pergerakan IN ('keluar_ke_crew', 'produksi_keluar')
-         AND sl.tanggal >= $1
-         AND sl.tanggal < ($1::date + INTERVAL '3 month')
+         AND sl.tanggal >= CASE WHEN $3::boolean THEN ($2::date - INTERVAL '3 month') ELSE $1::date END
+         AND sl.tanggal < $2::date
        WHERE i.status_aktif = true
        GROUP BY i.id, i.kode_barang, i.nama, i.satuan
        ORDER BY i.kode_barang`,
-      [awal3Bulan.toISOString().slice(0, 10)]
+      [awalObservasi ?? awalPeriodeBerikutnya, akhirObservasi ?? awalPeriodeBerikutnya, pakaiRataRata3Bulan, hariObservasi, new Date(Date.UTC(tahun, bulan + 1, 0)).getUTCDate()]
     );
 
     // 3) Stok gudang saat ini per item (dijumlah semua gudang) — buat hitung
@@ -79,10 +108,23 @@ async function generateRekapForecast(periode) {
         rataPemakaian3BulanTerakhir: Number(rataPemakaianBulan.toFixed(2)),
         stokSaatIni,
         estimasiKebutuhanBeli: Number(kebutuhanBeli.toFixed(2)),
+        metodeForecast: pakaiRataRata3Bulan ? 'Rata-rata pemakaian 3 bulan terakhir' : 'Laju pemakaian harian dari histori yang tersedia',
+        periodeObservasi: awalObservasi && tanggalDataTerakhir ? `${awalObservasi} s.d. ${tanggalDataTerakhir}` : null,
       };
     });
 
-    return { periode, rekapOpname, forecastPembelian };
+    return {
+      periode,
+      periodeForecast: awalPeriodeBerikutnya.slice(0, 7),
+      rekapOpname,
+      forecastPembelian,
+      metadataForecast: {
+        metode: pakaiRataRata3Bulan ? 'Rata-rata pemakaian 3 bulan terakhir' : 'Laju pemakaian harian dari histori yang tersedia',
+        periodeObservasi: awalObservasi && tanggalDataTerakhir ? `${awalObservasi} s.d. ${tanggalDataTerakhir}` : null,
+        hariObservasi: pakaiRataRata3Bulan ? null : hariObservasi,
+        cakupanStok: 'Stok gudang (stok outlet belum memiliki ledger real-time).',
+      },
+    };
   } finally {
     client.release();
   }
@@ -111,6 +153,8 @@ async function generateRekapForecastExcel(periode) {
     { header: 'Rata-rata Pemakaian 3 Bulan', key: 'rataPemakaian3BulanTerakhir', width: 24 },
     { header: 'Stok Saat Ini', key: 'stokSaatIni', width: 14 },
     { header: 'Estimasi Kebutuhan Beli', key: 'estimasiKebutuhanBeli', width: 22 },
+    { header: 'Metode Forecast', key: 'metodeForecast', width: 40 },
+    { header: 'Periode Observasi', key: 'periodeObservasi', width: 26 },
   ];
   sheetForecast.getRow(1).font = { bold: true };
   sheetForecast.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0E9DA' } };

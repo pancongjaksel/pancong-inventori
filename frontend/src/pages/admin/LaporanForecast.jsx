@@ -131,7 +131,13 @@ export default function LaporanForecast() {
 
           {data && (
             <>
-              <p className="label">Estimasi kebutuhan beli bulan depan (rata-rata pemakaian 3 bulan terakhir)</p>
+              <p className="label">Estimasi kebutuhan beli {data.periodeForecast || 'bulan depan'}</p>
+              <p style={{ color: 'var(--warna-abu)', fontSize: 12, marginTop: -12, marginBottom: 16 }}>
+                {data.metadataForecast?.metode || 'Metode forecast belum tersedia'}
+                {data.metadataForecast?.periodeObservasi ? ` · Data: ${data.metadataForecast.periodeObservasi}` : ''}
+                {data.metadataForecast?.hariObservasi ? ` (${data.metadataForecast.hariObservasi} hari)` : ''}
+                {data.metadataForecast?.cakupanStok ? ` · ${data.metadataForecast.cakupanStok}` : ''}
+              </p>
               {data.forecastPembelian.length === 0 && (
                 <p style={{ color: 'var(--warna-abu)', fontSize: 14 }}>Belum ada data pemakaian buat dihitung.</p>
               )}
@@ -142,7 +148,7 @@ export default function LaporanForecast() {
                     <div>
                       <div style={{ fontWeight: 600 }}>{f.namaItem}</div>
                       <div style={{ fontSize: 12, color: 'var(--warna-abu)' }}>
-                        Rata-rata pakai: {f.rataPemakaian3BulanTerakhir}/bulan · Stok saat ini: {f.stokSaatIni}
+                        Estimasi pakai: {f.rataPemakaian3BulanTerakhir}/bulan · Stok gudang: {f.stokSaatIni}
                       </div>
                     </div>
                     <div style={{ fontFamily: 'var(--font-angka)', fontWeight: 700, color: 'var(--warna-karamel)', alignSelf: 'center' }}>
