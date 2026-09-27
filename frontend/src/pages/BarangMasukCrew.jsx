@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api, authStorage, ApiError } from '../api/client';
 import UploadFoto from '../components/UploadFoto';
 import VendorField from '../components/VendorField';
+import InboundUnitHint from '../components/InboundUnitHint';
 
 export default function BarangMasukCrew() {
   const navigate = useNavigate();
@@ -142,6 +143,7 @@ export default function BarangMasukCrew() {
                 />
               </div>
             </div>
+            <InboundUnitHint item={items.find((item) => String(item.id) === String(row.itemId))} jumlah={row.jumlah} satuan={row.satuan} />
           </div>
         ))}
 

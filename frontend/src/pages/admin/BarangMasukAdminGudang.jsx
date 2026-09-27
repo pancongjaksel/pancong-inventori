@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api, ApiError } from '../../api/client';
 import UploadFoto from '../../components/UploadFoto';
 import VendorField from '../../components/VendorField';
+import InboundUnitHint from '../../components/InboundUnitHint';
 
 export default function BarangMasukAdminGudang() {
   const [items, setItems] = useState([]);
@@ -139,6 +140,7 @@ export default function BarangMasukAdminGudang() {
                 <input className="input-teks" value={row.satuan} onChange={(e) => ubahBaris(idx, { satuan: e.target.value })} />
               </div>
             </div>
+            <InboundUnitHint item={items.find((item) => String(item.id) === String(row.itemId))} jumlah={row.jumlah} satuan={row.satuan} />
           </div>
         ))}
 

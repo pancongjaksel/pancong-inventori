@@ -52,14 +52,23 @@ router.get('/items', requireAnyAuth, async (req, res, next) => {
     let queryText;
     let params = [];
     if (konteksCrew) {
-      queryText = `SELECT id, kode_barang, nama, kategori, satuan FROM item
+      queryText = `SELECT id, kode_barang, nama, kategori, satuan,
+                     COALESCE((SELECT json_agg(json_build_object('satuan_beli', k.satuan_beli, 'faktor_ke_stok', k.faktor_ke_stok))
+                               FROM item_konversi_penerimaan k WHERE k.item_id = item.id), '[]'::json) AS konversi_penerimaan
+                   FROM item
                    WHERE status_aktif = true AND (kategori != 'Bahan Adonan' OR kode_barang = 'BA-008')
                    ORDER BY kategori, nama`;
     } else if (tampilkanSemua) {
-      queryText = `SELECT id, kode_barang, nama, kategori, satuan, reorder_point, status_aktif, gudang_default_id, catatan_migrasi, harga
+      queryText = `SELECT id, kode_barang, nama, kategori, satuan, reorder_point, status_aktif, gudang_default_id, catatan_migrasi, harga,
+                     COALESCE((SELECT json_agg(json_build_object('satuan_beli', k.satuan_beli, 'faktor_ke_stok', k.faktor_ke_stok))
+                               FROM item_konversi_penerimaan k WHERE k.item_id = item.id), '[]'::json) AS konversi_penerimaan
+                   FROM item
                    FROM item ORDER BY kategori, nama`;
     } else {
-      queryText = `SELECT id, kode_barang, nama, kategori, satuan, reorder_point FROM item
+      queryText = `SELECT id, kode_barang, nama, kategori, satuan, reorder_point,
+                     COALESCE((SELECT json_agg(json_build_object('satuan_beli', k.satuan_beli, 'faktor_ke_stok', k.faktor_ke_stok))
+                               FROM item_konversi_penerimaan k WHERE k.item_id = item.id), '[]'::json) AS konversi_penerimaan
+                   FROM item
                    WHERE status_aktif = true
                      AND (
                        $1::int IS NULL

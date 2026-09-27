@@ -12,6 +12,26 @@ const { beginIdempotent, finishIdempotent } = require('./idempotencyService');
 const { AppError } = require('../errors/AppError');
 const { resolveVendor } = require('./vendorService');
 
+function normalisasiSatuan(satuan) {
+  return String(satuan || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+async function hitungJumlahStok(client, { itemId, jumlah, satuan }) {
+  const { rows } = await client.query(
+    `SELECT i.satuan AS satuan_stok, COALESCE(k.faktor_ke_stok, 1) AS faktor_ke_stok
+     FROM item i
+     LEFT JOIN item_konversi_penerimaan k
+       ON k.item_id = i.id AND k.satuan_beli_normalized = $2
+     WHERE i.id = $1`,
+    [itemId, normalisasiSatuan(satuan)],
+  );
+  if (!rows[0]) throw new AppError('Item tidak ditemukan.', 404, 'ITEM_TIDAK_DITEMUKAN');
+  return {
+    jumlahStok: Number(jumlah) * Number(rows[0].faktor_ke_stok),
+    satuanStok: rows[0].satuan_stok,
+  };
+}
+
 async function buatNotaAdmin(input) {
   const { gudangId, items, sumber, vendorId, vendorBaru, fotoBuktiUrl, adminUserId, tanggal } = input;
   const idempotencyKey = input.idempotencyKey;
@@ -44,10 +64,11 @@ async function buatNotaAdmin(input) {
     const notaId = rows[0].id;
 
     for (const it of items) {
+      const { jumlahStok } = await hitungJumlahStok(client, it);
       await client.query(
-        `INSERT INTO transaksi_masuk_item (nota_id, item_id, jumlah, satuan, harga_beli)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [notaId, it.itemId, it.jumlah, it.satuan, it.hargaBeli ?? null]
+        `INSERT INTO transaksi_masuk_item (nota_id, item_id, jumlah, jumlah_stok, satuan, harga_beli)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [notaId, it.itemId, it.jumlah, jumlahStok, it.satuan, it.hargaBeli ?? null]
       );
     }
 
@@ -101,10 +122,11 @@ async function buatNotaAdminGudang(input) {
     const notaId = rows[0].id;
 
     for (const it of items) {
+      const { jumlahStok } = await hitungJumlahStok(client, it);
       await client.query(
-        `INSERT INTO transaksi_masuk_item (nota_id, item_id, jumlah, satuan, harga_beli)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [notaId, it.itemId, it.jumlah, it.satuan, it.hargaBeli ?? null]
+        `INSERT INTO transaksi_masuk_item (nota_id, item_id, jumlah, jumlah_stok, satuan, harga_beli)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [notaId, it.itemId, it.jumlah, jumlahStok, it.satuan, it.hargaBeli ?? null]
       );
     }
 
@@ -144,10 +166,11 @@ async function buatNotaCrew(input) {
     const notaId = rows[0].id;
 
     for (const it of items) {
+      const { jumlahStok } = await hitungJumlahStok(client, it);
       await client.query(
-        `INSERT INTO transaksi_masuk_item (nota_id, item_id, jumlah, satuan)
-         VALUES ($1, $2, $3, $4)`,
-        [notaId, it.itemId, it.jumlah, it.satuan]
+        `INSERT INTO transaksi_masuk_item (nota_id, item_id, jumlah, jumlah_stok, satuan)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [notaId, it.itemId, it.jumlah, jumlahStok, it.satuan]
       );
     }
 
@@ -187,9 +210,19 @@ async function verifikasiNota(input) {
       );
     } else if (aksi === 'revisi') {
       for (const ri of revisiItems) {
+        const { rows: itemRows } = await client.query(
+          'SELECT item_id, satuan FROM transaksi_masuk_item WHERE id = $1 AND nota_id = $2 FOR UPDATE',
+          [ri.itemRowId, id],
+        );
+        if (!itemRows[0]) throw new AppError('Baris penerimaan tidak ditemukan.', 404, 'ITEM_ROW_TIDAK_DITEMUKAN');
+        const { jumlahStok } = await hitungJumlahStok(client, {
+          itemId: itemRows[0].item_id,
+          jumlah: ri.jumlahBaru,
+          satuan: itemRows[0].satuan,
+        });
         await client.query(
-          `UPDATE transaksi_masuk_item SET jumlah = $2 WHERE id = $1 AND nota_id = $3`,
-          [ri.itemRowId, ri.jumlahBaru, id]
+          `UPDATE transaksi_masuk_item SET jumlah = $2, jumlah_stok = $3 WHERE id = $1 AND nota_id = $4`,
+          [ri.itemRowId, ri.jumlahBaru, jumlahStok, id]
         );
       }
       await client.query(
@@ -278,7 +311,7 @@ async function listNota(status, filters = {}) {
 
   const notaIds = notaRows.map((n) => n.id);
   const { rows: itemRows } = await pool.query(
-    `SELECT tmi.id AS item_row_id, tmi.nota_id, tmi.jumlah, tmi.satuan, tmi.harga_beli,
+    `SELECT tmi.id AS item_row_id, tmi.nota_id, tmi.jumlah, tmi.jumlah_stok, tmi.satuan, tmi.harga_beli,
             i.kode_barang, i.nama AS nama_item
      FROM transaksi_masuk_item tmi
      JOIN item i ON i.id = tmi.item_id
@@ -309,7 +342,7 @@ async function getNota(id) {
   if (rows.length === 0) return null;
   const nota = rows[0];
   const { rows: itemRows } = await pool.query(
-    `SELECT tmi.id AS item_row_id, tmi.nota_id, tmi.jumlah, tmi.satuan, tmi.harga_beli,
+    `SELECT tmi.id AS item_row_id, tmi.nota_id, tmi.jumlah, tmi.jumlah_stok, tmi.satuan, tmi.harga_beli,
             i.kode_barang, i.nama AS nama_item
      FROM transaksi_masuk_item tmi
      JOIN item i ON i.id = tmi.item_id
