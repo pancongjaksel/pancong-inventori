@@ -17,6 +17,68 @@ function gayaHeader(sheet, terakhir) {
   sheet.views = [{ state: 'frozen', ySplit: 1 }];
 }
 
+function ubahBarisBelanja(row) {
+  return {
+    ...row,
+    jumlah: Number(row.jumlah),
+    harga_beli: row.harga_beli === null ? null : Number(row.harga_beli),
+    subtotal: row.subtotal === null ? null : Number(row.subtotal),
+  };
+}
+
+function kelompokkanPembelianLintasGudang(rows, awalPeriode) {
+  const perKunci = new Map();
+  for (const row of rows) {
+    // Harga harus tersedia agar dua pembelian yang kebetulan memakai item sama
+    // tidak disatukan ketika nilainya berbeda.
+    if (row.harga_beli === null) continue;
+    const kunci = [row.pemasok, row.item_id, row.satuan, row.harga_beli].join('|');
+    const daftar = perKunci.get(kunci) || [];
+    daftar.push(row);
+    perKunci.set(kunci, daftar);
+  }
+
+  const hasil = [];
+  for (const daftar of perKunci.values()) {
+    daftar.sort((a, b) => String(a.tanggal).localeCompare(String(b.tanggal)) || a.nota_id - b.nota_id);
+    let kandidat = [];
+    const simpanJikaLintasGudang = () => {
+      const gudang = [...new Set(kandidat.map((row) => row.nama_gudang))];
+      const notaIds = [...new Set(kandidat.map((row) => row.nota_id))];
+      if (gudang.length < 2 || notaIds.length < 2) return;
+      hasil.push({
+        pemasok: kandidat[0].pemasok,
+        kode_barang: kandidat[0].kode_barang,
+        nama_item: kandidat[0].nama_item,
+        satuan: kandidat[0].satuan,
+        harga_beli: kandidat[0].harga_beli,
+        jumlah: kandidat.reduce((total, row) => total + row.jumlah, 0),
+        totalBelanja: kandidat.reduce((total, row) => total + (row.subtotal || 0), 0),
+        tanggalMulai: kandidat[0].tanggal,
+        tanggalSelesai: kandidat[kandidat.length - 1].tanggal,
+        gudang,
+        notaIds,
+        lintasPeriode: kandidat.some((row) => String(row.tanggal) < awalPeriode),
+      });
+    };
+
+    for (const row of daftar) {
+      const terakhir = kandidat[kandidat.length - 1];
+      const selisihHari = terakhir
+        ? (new Date(`${String(row.tanggal).slice(0, 10)}T00:00:00Z`) - new Date(`${String(terakhir.tanggal).slice(0, 10)}T00:00:00Z`)) / 86400000
+        : 0;
+      if (terakhir && selisihHari > 1) {
+        simpanJikaLintasGudang();
+        kandidat = [];
+      }
+      kandidat.push(row);
+    }
+    simpanJikaLintasGudang();
+  }
+
+  return hasil.sort((a, b) => b.totalBelanja - a.totalBelanja || a.nama_item.localeCompare(b.nama_item));
+}
+
 /**
  * Laporan pembelian/penerimaan yang sudah sah untuk kebutuhan PPIC.
  * Harga boleh NULL pada penerimaan yang diinput crew; nilai total hanya
@@ -37,10 +99,12 @@ async function getLaporanBelanjaBulanan({ periode, gudangId }) {
   const { rows } = await pool.query(
     `SELECT
        n.id AS nota_id,
+       tmi.id AS item_row_id,
        n.tanggal,
        g.id AS gudang_id,
        g.nama AS nama_gudang,
-       COALESCE(NULLIF(BTRIM(n.sumber), ''), 'Tidak diisi') AS pemasok,
+       COALESCE(NULLIF(BTRIM(v.nama), ''), NULLIF(BTRIM(n.sumber), ''), 'Tidak diisi') AS pemasok,
+       tmi.item_id,
        i.kode_barang,
        i.nama AS nama_item,
        i.kategori,
@@ -52,6 +116,7 @@ async function getLaporanBelanjaBulanan({ periode, gudangId }) {
      JOIN transaksi_masuk_item tmi ON tmi.nota_id = n.id
      JOIN item i ON i.id = tmi.item_id
      JOIN gudang g ON g.id = n.gudang_id
+     LEFT JOIN vendor v ON v.id = n.vendor_id
      WHERE n.status_verifikasi = 'terverifikasi'
        AND n.jenis_penerimaan = 'pembelian'
        AND n.label_status IS DISTINCT FROM 'Dikoreksi'
@@ -62,12 +127,33 @@ async function getLaporanBelanjaBulanan({ periode, gudangId }) {
     [awalPeriode, gudangIdValid],
   );
 
-  const detail = rows.map((row) => ({
-    ...row,
-    jumlah: Number(row.jumlah),
-    harga_beli: row.harga_beli === null ? null : Number(row.harga_beli),
-    subtotal: row.subtotal === null ? null : Number(row.subtotal),
-  }));
+  const detail = rows.map(ubahBarisBelanja);
+
+  // Sertakan sehari sebelum awal periode hanya sebagai konteks pengelompokan.
+  // Baris tersebut tidak memengaruhi total periode saat ini.
+  const { rows: barisSehariSebelumnya } = await pool.query(
+    `SELECT n.id AS nota_id, tmi.id AS item_row_id, n.tanggal, g.id AS gudang_id,
+            g.nama AS nama_gudang,
+            COALESCE(NULLIF(BTRIM(v.nama), ''), NULLIF(BTRIM(n.sumber), ''), 'Tidak diisi') AS pemasok,
+            tmi.item_id, i.kode_barang, i.nama AS nama_item, i.kategori,
+            tmi.jumlah, tmi.satuan, tmi.harga_beli,
+            CASE WHEN tmi.harga_beli IS NULL THEN NULL ELSE tmi.jumlah * tmi.harga_beli END AS subtotal
+       FROM transaksi_masuk_nota n
+       JOIN transaksi_masuk_item tmi ON tmi.nota_id = n.id
+       JOIN item i ON i.id = tmi.item_id
+       JOIN gudang g ON g.id = n.gudang_id
+       LEFT JOIN vendor v ON v.id = n.vendor_id
+      WHERE n.status_verifikasi = 'terverifikasi'
+        AND n.jenis_penerimaan = 'pembelian'
+        AND n.label_status IS DISTINCT FROM 'Dikoreksi'
+        AND n.tanggal = ($1::date - INTERVAL '1 day')
+        AND ($2::int IS NULL OR n.gudang_id = $2)`,
+    [awalPeriode, gudangIdValid],
+  );
+  const pembelianLintasGudang = kelompokkanPembelianLintasGudang(
+    [...barisSehariSebelumnya.map(ubahBarisBelanja), ...detail],
+    awalPeriode,
+  );
 
   const summary = detail.reduce((acc, row) => {
     acc.jumlahBaris += 1;
@@ -109,6 +195,7 @@ async function getLaporanBelanjaBulanan({ periode, gudangId }) {
       .sort((a, b) => b.totalBelanja - a.totalBelanja || a.pemasok.localeCompare(b.pemasok)),
     perKategori: [...ringkasanKategori.values()]
       .sort((a, b) => b.totalBelanja - a.totalBelanja || a.kategori.localeCompare(b.kategori)),
+    pembelianLintasGudang,
   };
 }
 
@@ -163,6 +250,32 @@ async function generateLaporanBelanjaBulananExcel(input) {
   gayaHeader(sheetKategori, 'D');
   laporan.perKategori.forEach((row) => sheetKategori.addRow(row));
   sheetKategori.getColumn('D').numFmt = '"Rp" #,##0';
+
+  const sheetLintasGudang = workbook.addWorksheet('Pembelian Lintas Gudang');
+  sheetLintasGudang.columns = [
+    { header: 'Tanggal Mulai', key: 'tanggalMulai', width: 14 },
+    { header: 'Tanggal Selesai', key: 'tanggalSelesai', width: 14 },
+    { header: 'Pemasok', key: 'pemasok', width: 24 },
+    { header: 'Kode Barang', key: 'kode_barang', width: 16 },
+    { header: 'Nama Barang', key: 'nama_item', width: 30 },
+    { header: 'Jumlah Gabungan', key: 'jumlah', width: 18 },
+    { header: 'Satuan', key: 'satuan', width: 14 },
+    { header: 'Harga Beli', key: 'harga_beli', width: 16 },
+    { header: 'Nilai Gabungan', key: 'totalBelanja', width: 18 },
+    { header: 'Gudang', key: 'gudang', width: 30 },
+    { header: 'Nota', key: 'notaIds', width: 18 },
+    { header: 'Catatan', key: 'catatan', width: 24 },
+  ];
+  gayaHeader(sheetLintasGudang, 'L');
+  laporan.pembelianLintasGudang.forEach((row) => sheetLintasGudang.addRow({
+    ...row,
+    gudang: row.gudang.join(', '),
+    notaIds: row.notaIds.map((id) => `#${id}`).join(', '),
+    catatan: row.lintasPeriode ? 'Termasuk nota sehari sebelum periode' : 'Terdeteksi lintas gudang',
+  }));
+  sheetLintasGudang.getColumn('F').numFmt = '#,##0.##';
+  sheetLintasGudang.getColumn('H').numFmt = '"Rp" #,##0';
+  sheetLintasGudang.getColumn('I').numFmt = '"Rp" #,##0';
 
   return { workbook, laporan };
 }

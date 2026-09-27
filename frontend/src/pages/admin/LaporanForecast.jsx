@@ -232,6 +232,29 @@ export default function LaporanForecast() {
                 </div>
               )}
 
+              {belanjaData.pembelianLintasGudang?.length > 0 && (
+                <div className="kartu" style={{ marginBottom: 16, borderColor: '#D8C7A3' }}>
+                  <div style={{ fontWeight: 700, marginBottom: 4 }}>Pembelian terkait lintas gudang</div>
+                  <div style={{ fontSize: 12, color: 'var(--warna-abu)', marginBottom: 10 }}>
+                    Pembelian dengan pemasok, barang, satuan, dan harga sama yang dicatat pada gudang berbeda dalam rentang satu hari. Ini hanya pengelompokan laporan; total belanja dan stok tidak berubah.
+                  </div>
+                  {belanjaData.pembelianLintasGudang.map((item) => (
+                    <div key={`${item.kode_barang}-${item.notaIds.join('-')}`} style={{ padding: '10px 0', borderTop: '1px solid var(--warna-garis)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                        <div style={{ fontWeight: 700 }}>{item.nama_item}</div>
+                        <div style={{ fontFamily: 'var(--font-angka)', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                          {Number(item.jumlah).toLocaleString('id-ID')} {item.satuan}
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--warna-abu)', marginTop: 3 }}>
+                        {item.pemasok} · Nota {item.notaIds.map((id) => `#${id}`).join(', ')} · {item.gudang.join(' + ')}
+                        {item.lintasPeriode && ' · termasuk nota sehari sebelum periode'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {belanjaData.perPemasok.length === 0 ? (
                 <p style={{ color: 'var(--warna-abu)', fontSize: 14 }}>Tidak ada penerimaan terverifikasi pada periode ini.</p>
               ) : belanjaData.perPemasok.map((row) => (
