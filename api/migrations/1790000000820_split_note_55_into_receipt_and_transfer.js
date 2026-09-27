@@ -61,7 +61,7 @@ exports.up = (pgm) => {
       );
 
     INSERT INTO transaksi_masuk_item (nota_id, item_id, jumlah, satuan, harga_beli)
-    SELECT replacement.id, original.item_id, original.jumlah, original.satuan, original.harga_beli
+    SELECT replacement.id, source_item.item_id, source_item.jumlah, source_item.satuan, source_item.harga_beli
     FROM transaksi_masuk_nota original
     JOIN transaksi_masuk_item source_item ON source_item.nota_id = original.id
     JOIN transaksi_masuk_nota replacement
