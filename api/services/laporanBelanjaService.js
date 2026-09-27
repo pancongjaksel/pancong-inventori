@@ -26,6 +26,10 @@ function ubahBarisBelanja(row) {
   };
 }
 
+function tanggalKeKunci(value) {
+  return value instanceof Date ? value.toISOString().slice(0, 10) : String(value).slice(0, 10);
+}
+
 function kelompokkanPembelianLintasGudang(rows, awalPeriode) {
   const perKunci = new Map();
   for (const row of rows) {
@@ -40,7 +44,7 @@ function kelompokkanPembelianLintasGudang(rows, awalPeriode) {
 
   const hasil = [];
   for (const daftar of perKunci.values()) {
-    daftar.sort((a, b) => String(a.tanggal).localeCompare(String(b.tanggal)) || a.nota_id - b.nota_id);
+    daftar.sort((a, b) => tanggalKeKunci(a.tanggal).localeCompare(tanggalKeKunci(b.tanggal)) || a.nota_id - b.nota_id);
     let kandidat = [];
     const simpanJikaLintasGudang = () => {
       const gudang = [...new Set(kandidat.map((row) => row.nama_gudang))];
@@ -54,18 +58,18 @@ function kelompokkanPembelianLintasGudang(rows, awalPeriode) {
         harga_beli: kandidat[0].harga_beli,
         jumlah: kandidat.reduce((total, row) => total + row.jumlah, 0),
         totalBelanja: kandidat.reduce((total, row) => total + (row.subtotal || 0), 0),
-        tanggalMulai: kandidat[0].tanggal,
-        tanggalSelesai: kandidat[kandidat.length - 1].tanggal,
+        tanggalMulai: tanggalKeKunci(kandidat[0].tanggal),
+        tanggalSelesai: tanggalKeKunci(kandidat[kandidat.length - 1].tanggal),
         gudang,
         notaIds,
-        lintasPeriode: kandidat.some((row) => String(row.tanggal) < awalPeriode),
+        lintasPeriode: kandidat.some((row) => tanggalKeKunci(row.tanggal) < awalPeriode),
       });
     };
 
     for (const row of daftar) {
       const terakhir = kandidat[kandidat.length - 1];
       const selisihHari = terakhir
-        ? (new Date(`${String(row.tanggal).slice(0, 10)}T00:00:00Z`) - new Date(`${String(terakhir.tanggal).slice(0, 10)}T00:00:00Z`)) / 86400000
+        ? (new Date(`${tanggalKeKunci(row.tanggal)}T00:00:00Z`) - new Date(`${tanggalKeKunci(terakhir.tanggal)}T00:00:00Z`)) / 86400000
         : 0;
       if (terakhir && selisihHari > 1) {
         simpanJikaLintasGudang();
