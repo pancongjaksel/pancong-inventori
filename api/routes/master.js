@@ -63,7 +63,7 @@ router.get('/items', requireAnyAuth, async (req, res, next) => {
                      COALESCE((SELECT json_agg(json_build_object('satuan_beli', k.satuan_beli, 'faktor_ke_stok', k.faktor_ke_stok))
                                FROM item_konversi_penerimaan k WHERE k.item_id = item.id), '[]'::json) AS konversi_penerimaan
                    FROM item
-                   FROM item ORDER BY kategori, nama`;
+                   ORDER BY kategori, nama`;
     } else {
       queryText = `SELECT id, kode_barang, nama, kategori, satuan, reorder_point,
                      COALESCE((SELECT json_agg(json_build_object('satuan_beli', k.satuan_beli, 'faktor_ke_stok', k.faktor_ke_stok))
