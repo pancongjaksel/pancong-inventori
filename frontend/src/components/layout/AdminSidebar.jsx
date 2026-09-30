@@ -6,6 +6,7 @@ const NAV_ITEMS = [
   { to: '/admin/barang-masuk', label: 'Penerimaan' },
   { to: '/admin/transfer', label: 'Pemindahan' },
   { to: '/admin/opname', label: 'Opname', end: true },
+  { to: '/admin/ringkasan-selisih', label: 'Selisih Closing' },
   { to: '/admin/opname/approval', label: 'Approval Opname Gudang' },
   { to: '/admin/opname/approval-outlet', label: 'Approval Opname Outlet' },
   { to: '/admin/koreksi', label: 'Penyesuaian' },
