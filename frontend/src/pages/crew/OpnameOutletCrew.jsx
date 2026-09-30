@@ -4,6 +4,12 @@ import { api, ApiError } from '../../api/client';
 
 const BASE = '/opname-outlet';
 
+function petunjukSatuanCrew(item) {
+  if (item?.kode_barang === 'X-004') return 'Hitung per balok 250gr · 1 slop = 8 balok';
+  if (item?.kode_barang === 'K-008') return 'Hitung per lembar · 1 grosir = 500 lembar';
+  return null;
+}
+
 export default function OpnameOutletCrew() {
   const navigate = useNavigate();
 
@@ -291,6 +297,11 @@ export default function OpnameOutletCrew() {
                     <div>
                       <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--warna-arang)' }}>{item.nama}</div>
                       <div style={{ fontSize: 11, color: 'var(--warna-abu)', marginTop: 1 }}>{item.satuan}</div>
+                      {petunjukSatuanCrew(item) && (
+                        <div style={{ fontSize: 11, color: 'var(--warna-karamel)', marginTop: 3, fontWeight: 600 }}>
+                          {petunjukSatuanCrew(item)}
+                        </div>
+                      )}
                     </div>
                     {s !== null && (
                       <SelisihChip nilai={s} />

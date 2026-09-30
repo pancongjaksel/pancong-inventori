@@ -19,6 +19,12 @@ function formatWaktu(iso) {
   return new Date(iso).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 }
 
+function petunjukSatuanCrew(item) {
+  if (item?.kode_barang === 'X-004') return 'Hitung per balok 250gr · 1 slop = 8 balok';
+  if (item?.kode_barang === 'K-008') return 'Hitung per lembar · 1 grosir = 500 lembar';
+  return null;
+}
+
 export default function AmbilBarang() {
   const navigate = useNavigate();
   const [tab, setTab] = useState('ambil'); // 'ambil' | 'riwayat'
@@ -102,7 +108,7 @@ export default function AmbilBarang() {
         .filter(([, qty]) => qty > 0)
         .map(([itemId, qty]) => {
           const item = items.find((i) => String(i.id) === itemId);
-          return { itemId: Number(itemId), nama: item?.nama, satuan: item?.satuan, qty };
+          return { itemId: Number(itemId), nama: item?.nama, satuan: item?.satuan, kodeBarang: item?.kode_barang, qty };
         }),
     [cart, items]
   );
@@ -190,9 +196,14 @@ export default function AmbilBarang() {
           <p className="label">Barang ({daftarCartUntukReview.length})</p>
           {daftarCartUntukReview.map((row) => (
             <div key={row.itemId} className="kartu" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-              <div>
-                <div style={{ fontWeight: 600 }}>{row.nama}</div>
-                <div style={{ fontSize: 13, color: 'var(--warna-abu)' }}>{row.qty} {row.satuan}</div>
+                <div>
+                  <div style={{ fontWeight: 600 }}>{row.nama}</div>
+                  <div style={{ fontSize: 13, color: 'var(--warna-abu)' }}>{row.qty} {row.satuan}</div>
+                  {petunjukSatuanCrew({ kode_barang: row.kodeBarang }) && (
+                    <div style={{ fontSize: 11, color: 'var(--warna-karamel)', marginTop: 3, fontWeight: 600 }}>
+                      {petunjukSatuanCrew({ kode_barang: row.kodeBarang })}
+                    </div>
+                  )}
               </div>
               <QtyStepper value={row.qty} onChange={(qty) => ubahQty(row.itemId, qty)} />
             </div>
@@ -237,6 +248,11 @@ export default function AmbilBarang() {
                 <div>
                   <div style={{ fontWeight: 600 }}>{item.nama}</div>
                   <div style={{ fontSize: 13, color: 'var(--warna-abu)' }}>{item.satuan}</div>
+                  {petunjukSatuanCrew(item) && (
+                    <div style={{ fontSize: 11, color: 'var(--warna-karamel)', marginTop: 3, fontWeight: 600 }}>
+                      {petunjukSatuanCrew(item)}
+                    </div>
+                  )}
                 </div>
                 <QtyStepper value={cart[item.id] || 0} onChange={(qty) => ubahQty(item.id, qty)} />
               </div>
