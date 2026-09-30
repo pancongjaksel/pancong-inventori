@@ -114,6 +114,40 @@ router.get('/approval', requireAdmin, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+/** Ringkasan nilai rupiah dari selisih closing gudang yang masih menunggu approval. */
+router.get('/closing/selisih', requireAdmin, async (req, res, next) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT
+        so.sesi_id, so.periode, so.tanggal,
+        g.nama AS nama_gudang,
+        i.kode_barang, i.nama AS nama_item, i.satuan,
+        so.stok_sistem_atau_diterima AS stok_sistem,
+        so.stok_fisik, so.selisih,
+        COALESCE(i.harga, 0) AS harga_satuan,
+        ABS(so.selisih) * COALESCE(i.harga, 0) AS nilai_selisih
+      FROM stok_opname so
+      JOIN gudang g ON g.id = so.gudang_id
+      JOIN item i ON i.id = so.item_id
+      WHERE so.lokasi_tipe = 'gudang'
+        AND so.fase_periode = 'closing'
+        AND so.status = 'menunggu'
+        AND so.selisih <> 0
+      ORDER BY nilai_selisih DESC, g.nama, i.nama
+    `);
+
+    const ringkasan = rows.reduce((hasil, row) => {
+      const nilai = Number(row.nilai_selisih);
+      if (Number(row.selisih) > 0) hasil.nilai_kekurangan += nilai;
+      else hasil.nilai_kelebihan += nilai;
+      hasil.total_nilai_selisih += nilai;
+      return hasil;
+    }, { jumlah_baris: rows.length, nilai_kekurangan: 0, nilai_kelebihan: 0, total_nilai_selisih: 0 });
+
+    res.json({ sukses: true, data: { ringkasan, items: rows } });
+  } catch (err) { next(err); }
+});
+
 // GET /api/stok-opname/sesi/:sesiId — detail sesi
 router.get('/sesi/:sesiId', requireAdmin, async (req, res, next) => {
   try {

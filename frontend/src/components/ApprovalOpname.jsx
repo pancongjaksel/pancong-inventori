@@ -12,6 +12,8 @@ const labelFase = (fase, jenis) => {
   return jenis;
 };
 
+const formatRupiah = (nilai) => `Rp ${Number(nilai || 0).toLocaleString('id-ID')}`;
+
 export default function ApprovalOpname() {
   const [daftar, setDaftar] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,11 +27,12 @@ export default function ApprovalOpname() {
   const [sesuaikanStok, setSesuaikanStok] = useState(false);
   const [proses, setProses] = useState(false);
   const [loadingSesi, setLoadingSesi] = useState({});
+  const [selisihClosing, setSelisihClosing] = useState(null);
 
   function muat() {
     setLoading(true);
-    api.get('/stok-opname/approval')
-      .then(setDaftar)
+    Promise.all([api.get('/stok-opname/approval'), api.get('/stok-opname/closing/selisih')])
+      .then(([sesi, selisih]) => { setDaftar(sesi); setSelisihClosing(selisih); })
       .catch(() => setError('Gagal memuat data approval.'))
       .finally(() => setLoading(false));
   }
@@ -82,6 +85,32 @@ export default function ApprovalOpname() {
     <div>
       {error && <div className="pesan-error">{error}</div>}
       {sukses && <div className="pesan-sukses">{sukses}</div>}
+
+      {selisihClosing?.ringkasan?.jumlah_baris > 0 && (
+        <section className="kartu" style={{ marginBottom: 16, border: '1.5px solid #e6c394' }}>
+          <div style={{ fontWeight: 700, marginBottom: 4 }}>Ringkasan Selisih Closing Gudang</div>
+          <div style={{ fontSize: 13, color: 'var(--warna-abu)', marginBottom: 12 }}>
+            {selisihClosing.ringkasan.jumlah_baris} item berbeda dari stok sistem. Nilai memakai harga master item saat ini.
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 14, fontSize: 13 }}>
+            <span><strong>Kekurangan fisik:</strong> {formatRupiah(selisihClosing.ringkasan.nilai_kekurangan)}</span>
+            <span><strong>Kelebihan fisik:</strong> {formatRupiah(selisihClosing.ringkasan.nilai_kelebihan)}</span>
+            <span><strong>Total nilai selisih:</strong> {formatRupiah(selisihClosing.ringkasan.total_nilai_selisih)}</span>
+          </div>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+              <thead><tr style={{ color: 'var(--warna-abu)', textAlign: 'left' }}>
+                <th style={{ padding: '6px 4px' }}>Gudang</th><th style={{ padding: '6px 4px' }}>Item</th><th style={{ padding: '6px 4px', textAlign: 'right' }}>Sistem</th><th style={{ padding: '6px 4px', textAlign: 'right' }}>Fisik</th><th style={{ padding: '6px 4px', textAlign: 'right' }}>Selisih</th><th style={{ padding: '6px 4px', textAlign: 'right' }}>Nilai</th>
+              </tr></thead>
+              <tbody>{selisihClosing.items.map((item) => (
+                <tr key={`${item.sesi_id}-${item.kode_barang}`} style={{ borderTop: '1px solid var(--warna-garis)' }}>
+                  <td style={{ padding: '8px 4px' }}>{item.nama_gudang}</td><td style={{ padding: '8px 4px' }}>{item.nama_item}<div style={{ color: 'var(--warna-abu)' }}>{item.satuan}</div></td><td style={{ padding: '8px 4px', textAlign: 'right' }}>{item.stok_sistem}</td><td style={{ padding: '8px 4px', textAlign: 'right' }}>{item.stok_fisik}</td><td style={{ padding: '8px 4px', textAlign: 'right', fontWeight: 700, color: Number(item.selisih) > 0 ? 'var(--warna-bahaya)' : 'var(--warna-sukses)' }}>{Number(item.selisih) > 0 ? '-' : '+'}{Math.abs(Number(item.selisih))}</td><td style={{ padding: '8px 4px', textAlign: 'right', fontWeight: 700 }}>{formatRupiah(item.nilai_selisih)}</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       {daftar.length === 0 ? (
         <p style={{ textAlign: 'center', color: 'var(--warna-abu)', marginTop: 40 }}>
