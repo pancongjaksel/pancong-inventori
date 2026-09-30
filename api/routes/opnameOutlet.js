@@ -3,11 +3,40 @@ const router = express.Router();
 const { pool } = require('../db/pool');
 const { requireAdmin, requireAdminOrGudang, requireAnyAuth } = require('../middleware/authMiddleware');
 
+function adalahSesiCrew(req) {
+  return Boolean(req.device && !req.user);
+}
+
+async function pastikanOutletSesuaiGudangCrew(client, req, outletId) {
+  if (!adalahSesiCrew(req)) return;
+
+  const { rows } = await client.query(
+    `SELECT id
+     FROM outlet
+     WHERE id = $1 AND gudang_asal_id = $2 AND aktif = true`,
+    [outletId, req.device.gudangId]
+  );
+  if (!rows.length) {
+    return Object.assign(new Error('Outlet tidak tersedia untuk gudang crew ini.'), {
+      statusCode: 403,
+      kode: 'OUTLET_TIDAK_SESUAI_GUDANG',
+    });
+  }
+  return null;
+}
+
 // GET /opname-outlet/outlets
-router.get('/outlets', requireAdminOrGudang, async (req, res, next) => {
+router.get('/outlets', requireAnyAuth, async (req, res, next) => {
   try {
+    const params = [];
+    const kondisi = ['aktif = true'];
+    if (adalahSesiCrew(req)) {
+      params.push(req.device.gudangId);
+      kondisi.push(`gudang_asal_id = $${params.length}`);
+    }
     const { rows } = await pool.query(
-      `SELECT id, nama FROM outlet WHERE aktif = true ORDER BY nama`
+      `SELECT id, nama FROM outlet WHERE ${kondisi.join(' AND ')} ORDER BY nama`,
+      params
     );
     res.json({ sukses: true, data: rows });
   } catch (err) {
@@ -215,6 +244,12 @@ router.post('/', requireAnyAuth, async (req, res, next) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+
+    const errorAkses = await pastikanOutletSesuaiGudangCrew(client, req, outlet_id);
+    if (errorAkses) {
+      await client.query('ROLLBACK');
+      return res.status(errorAkses.statusCode).json({ sukses: false, kode: errorAkses.kode, pesan: errorAkses.message });
+    }
 
     const { rows } = await client.query(
       `INSERT INTO opname_outlet (outlet_id, tanggal_opname, periode_dari, periode_sampai, dibuat_oleh, status)
