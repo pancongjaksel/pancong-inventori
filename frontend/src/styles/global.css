@@ -811,6 +811,23 @@ input[type=number] { -moz-appearance: textfield; }
   padding: 20px 16px 24px;
 }
 
+.selisih-closing__mobile { display: none; }
+
+@media (max-width: 640px) {
+  .selisih-closing__desktop { display: none; }
+  .selisih-closing__mobile { display: grid; gap: 8px; }
+  .selisih-closing__card {
+    border: 1px solid var(--warna-garis);
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 13px;
+  }
+  .selisih-closing__lokasi { color: var(--warna-abu); font-size: 11px; margin-bottom: 3px; }
+  .selisih-closing__angka { display: flex; flex-wrap: wrap; gap: 8px 12px; margin-top: 8px; color: var(--warna-abu); font-size: 11px; }
+  .selisih-closing__angka strong { color: var(--warna-arang); margin-left: 2px; }
+  .selisih-closing__nilai { font-size: 15px; font-weight: 700; text-align: right; margin-top: 8px; }
+}
+
 @media (min-width: 900px) {
   .admin-app {
     flex-direction: row;

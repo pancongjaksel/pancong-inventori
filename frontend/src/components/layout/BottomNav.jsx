@@ -30,11 +30,14 @@ const TRANSAKSI_PREFIXES_ADMIN = [
 // ─── Admin Gudang ────────────────────────────────────────────────────────────
 
 const DRAWER_ITEMS_GUDANG = [
+  { section: 'Operasional' },
   { to: '/admin-gudang/verifikasi', label: 'Verifikasi Penerimaan' },
+  { to: '/admin-gudang/opname', label: 'Stok Opname' },
+  { section: 'Kontrol & Laporan' },
+  { to: '/admin-gudang/ringkasan-selisih', label: 'Selisih Closing' },
   { to: '/admin-gudang/laporan', label: 'Laporan' },
   { to: '/admin-gudang/koreksi', label: 'Penyesuaian' },
-  { to: '/admin-gudang/opname', label: 'Stok Opname' },
-  { to: '/admin-gudang/ringkasan-selisih', label: 'Selisih Closing' },
+  { section: 'Riwayat' },
   { to: '/admin-gudang/riwayat-transfer', label: 'Riwayat Pemindahan' },
   { to: '/admin-gudang/riwayat-barang-masuk', label: 'Riwayat Penerimaan' },
 ];
@@ -96,7 +99,12 @@ function Drawer({ buka, items }) {
       }}>
         Menu
       </div>
-      {items.map((item, i) => (
+      {items.map((item, i) => item.section ? (
+        <div key={`section-${item.section}`} style={{
+          fontSize: 10, fontWeight: 700, color: 'var(--warna-abu)',
+          textTransform: 'uppercase', letterSpacing: '0.1em', padding: '14px 20px 7px',
+        }}>{item.section}</div>
+      ) : (
         <NavLink
           key={item.to}
           to={item.to}
