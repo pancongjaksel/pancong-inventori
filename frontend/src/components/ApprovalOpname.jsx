@@ -5,6 +5,13 @@ const formatTanggal = (iso) => iso
   ? new Date(iso).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
   : '-';
 
+const labelFase = (fase, jenis) => {
+  if (fase === 'closing') return 'closing periode';
+  if (fase === 'baseline') return 'baseline awal';
+  if (fase === 'legacy') return 'catatan lama — bukan closing';
+  return jenis;
+};
+
 export default function ApprovalOpname() {
   const [daftar, setDaftar] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -89,7 +96,7 @@ export default function ApprovalOpname() {
             <div>
               <div style={{ fontWeight: 700 }}>{sesi.nama_gudang}</div>
               <div style={{ fontSize: 13, color: 'var(--warna-abu)', marginTop: 2 }}>
-                {formatTanggal(sesi.tanggal)} · {sesi.fase_periode === 'closing' ? 'closing periode' : sesi.jenis_opname} · {sesi.jumlah_item} item
+                {formatTanggal(sesi.tanggal)} · {labelFase(sesi.fase_periode, sesi.jenis_opname)} · {sesi.jumlah_item} item
                 {sesi.dicatat_oleh ? ` · oleh ${sesi.dicatat_oleh}` : ''}
               </div>
               {Number(sesi.total_selisih) > 0 && (
