@@ -4,6 +4,25 @@ import { api, ApiError } from '../../api/client';
 
 const BASE = '/opname-outlet';
 
+function formatPeriode(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function periodeClosingAwal() {
+  const sekarang = new Date();
+  if (sekarang.getDate() <= 3) sekarang.setMonth(sekarang.getMonth() - 1);
+  return formatPeriode(sekarang);
+}
+
+function rentangPeriode(periode) {
+  const [tahun, bulan] = periode.split('-').map(Number);
+  const tanggalAkhir = new Date(tahun, bulan, 0);
+  return {
+    dari: `${periode}-01`,
+    sampai: `${tanggalAkhir.getFullYear()}-${String(tanggalAkhir.getMonth() + 1).padStart(2, '0')}-${String(tanggalAkhir.getDate()).padStart(2, '0')}`,
+  };
+}
+
 function petunjukSatuanCrew(item) {
   if (item?.kode_barang === 'X-004') return 'Hitung per balok 250gr · 1 slop = 8 balok';
   if (item?.kode_barang === 'K-008') return 'Hitung per lembar · 1 grosir = 500 lembar';
@@ -27,13 +46,10 @@ export default function OpnameOutletCrew() {
   const [loadingData, setLoadingData] = useState(false);
   const [error, setError] = useState(null);
   const [opnameIdBaru, setOpnameIdBaru] = useState(null);
+  const [periode, setPeriode] = useState(periodeClosingAwal);
 
-  // Periode: bulan ini
-  const sekarang = new Date();
-  const periodeLabel = sekarang.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
-  const periodeDari = new Date(sekarang.getFullYear(), sekarang.getMonth(), 1)
-    .toISOString().slice(0, 10);
-  const periodeSampai = sekarang.toISOString().slice(0, 10);
+  const periodeLabel = new Date(`${periode}-01T00:00:00`).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+  const { dari: periodeDari, sampai: periodeSampai } = rentangPeriode(periode);
 
   // Load outlets
   useEffect(() => {
@@ -151,6 +167,22 @@ export default function OpnameOutletCrew() {
               Opname Outlet
             </div>
             <div style={{ fontSize: 13, color: 'var(--warna-abu)' }}>{periodeLabel}</div>
+          </div>
+
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--warna-abu)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+              Periode closing
+            </label>
+            <input
+              type="month"
+              value={periode}
+              max={formatPeriode(new Date())}
+              onChange={(e) => setPeriode(e.target.value)}
+              style={{ width: '100%', height: 46, border: '1px solid var(--warna-garis)', borderRadius: 10, padding: '0 12px', fontSize: 15, background: 'white' }}
+            />
+            <div style={{ fontSize: 12, color: 'var(--warna-abu)', marginTop: 6 }}>
+              Closing selalu menghitung sampai {new Date(`${periodeSampai}T00:00:00`).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}. Pada tanggal 1–3, periode bulan lalu dipilih otomatis.
+            </div>
           </div>
 
           {error && <div className="pesan-error">{error}</div>}

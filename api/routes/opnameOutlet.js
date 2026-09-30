@@ -25,6 +25,22 @@ async function pastikanOutletSesuaiGudangCrew(client, req, outletId) {
   return null;
 }
 
+function rentangClosingPeriode(periode) {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(periode || '')) return null;
+  const [tahun, bulan] = periode.split('-').map(Number);
+  const dari = `${periode}-01`;
+  const sampai = new Date(Date.UTC(tahun, bulan, 0)).toISOString().slice(0, 10);
+  return { dari, sampai };
+}
+
+function tanggalJakartaHariIni() {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(new Date());
+  const nilai = Object.fromEntries(parts.filter((p) => p.type !== 'literal').map((p) => [p.type, p.value]));
+  return `${nilai.year}-${nilai.month}-${nilai.day}`;
+}
+
 // GET /opname-outlet/outlets
 router.get('/outlets', requireAnyAuth, async (req, res, next) => {
   try {
@@ -241,6 +257,15 @@ router.post('/', requireAnyAuth, async (req, res, next) => {
     return res.status(400).json({ sukses: false, pesan: 'Data tidak lengkap.' });
   }
 
+  const periode = String(periode_dari).slice(0, 7);
+  const rentang = rentangClosingPeriode(periode);
+  if (!rentang || periode_dari !== rentang.dari || periode_sampai !== rentang.sampai || tanggal_opname !== rentang.sampai) {
+    return res.status(400).json({ sukses: false, kode: 'PERIODE_CLOSING_TIDAK_VALID', pesan: 'Closing outlet harus memakai rentang satu bulan penuh dan tanggal akhir periode.' });
+  }
+  if (rentang.sampai > tanggalJakartaHariIni()) {
+    return res.status(400).json({ sukses: false, kode: 'CLOSING_BELUM_WAKTUNYA', pesan: 'Closing belum dapat dibuat sebelum tanggal akhir periode.' });
+  }
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -272,7 +297,7 @@ router.post('/', requireAnyAuth, async (req, res, next) => {
   } catch (err) {
     await client.query('ROLLBACK');
     if (err.code === '23505') {
-      return res.status(409).json({ sukses: false, pesan: 'Opname untuk outlet dan tanggal ini sudah ada.' });
+      return res.status(409).json({ sukses: false, pesan: 'Closing untuk outlet dan periode ini sudah ada.' });
     }
     next(err);
   } finally {

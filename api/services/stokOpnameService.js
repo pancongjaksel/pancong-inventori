@@ -2,6 +2,7 @@ const { pool } = require('../db/pool');
 const {
   validasiFieldDasar,
   validasiTanggal,
+  validasiFasePeriode,
   validasiBelumAdaOpname,
   validasiAksesGudangAdmin,
   hitungStokSistemGudang,
@@ -10,10 +11,13 @@ const {
 } = require('../validators/stokOpnameValidator');
 
 async function buatOpnameGudang(input) {
-  const { gudangId, itemId, stokFisik, periode, userId, jenisOpname, tanggal, sesiId } = input;
+  const { gudangId, itemId, stokFisik, periode, userId, jenisOpname, faseOpname, tanggal, sesiId } = input;
 
   validasiFieldDasar({ itemId, stokFisik, periode, jenisOpname });
   validasiTanggal(tanggal, periode);
+
+  const jenis = jenisOpname || 'bulanan';
+  const fasePeriode = validasiFasePeriode({ fasePeriode: faseOpname, jenisOpname: jenis, tanggal, periode });
 
   const client = await pool.connect();
   try {
@@ -21,7 +25,6 @@ async function buatOpnameGudang(input) {
 
     await validasiAksesGudangAdmin(client, { userId, gudangId });
 
-    const jenis = jenisOpname || 'bulanan';
     await validasiBelumAdaOpname(client, {
       lokasiTipe: 'gudang',
       gudangId,
@@ -38,10 +41,10 @@ async function buatOpnameGudang(input) {
       `INSERT INTO stok_opname
          (lokasi_tipe, gudang_id, item_id, periode, stok_awal_periode,
           stok_sistem_atau_diterima, stok_fisik, dicatat_oleh_user_id,
-          jenis_opname, tanggal, sesi_id, status)
-       VALUES ('gudang', $1, $2, $3, 0, $4, $5, $6, $7, $8, $9, 'menunggu')
+          jenis_opname, fase_periode, tanggal, sesi_id, status)
+       VALUES ('gudang', $1, $2, $3, 0, $4, $5, $6, $7, $8, $9, $10, 'menunggu')
        RETURNING id, selisih`,
-      [gudangId, itemId, periode, stokSistem, stokFisik, userId, jenis, tanggal, sesiId || null]
+      [gudangId, itemId, periode, stokSistem, stokFisik, userId, jenis, fasePeriode, tanggal, sesiId || null]
     );
     const { id: opnameId, selisih } = rows[0];
 
@@ -52,6 +55,7 @@ async function buatOpnameGudang(input) {
       stokFisik,
       selisih: Number(selisih),
       jenisOpname: jenis,
+      fasePeriode,
       tanggal,
     };
   } catch (err) {

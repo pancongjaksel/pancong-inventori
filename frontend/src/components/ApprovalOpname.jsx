@@ -89,7 +89,7 @@ export default function ApprovalOpname() {
             <div>
               <div style={{ fontWeight: 700 }}>{sesi.nama_gudang}</div>
               <div style={{ fontSize: 13, color: 'var(--warna-abu)', marginTop: 2 }}>
-                {formatTanggal(sesi.tanggal)} · {sesi.jenis_opname} · {sesi.jumlah_item} item
+                {formatTanggal(sesi.tanggal)} · {sesi.fase_periode === 'closing' ? 'closing periode' : sesi.jenis_opname} · {sesi.jumlah_item} item
                 {sesi.dicatat_oleh ? ` · oleh ${sesi.dicatat_oleh}` : ''}
               </div>
               {Number(sesi.total_selisih) > 0 && (

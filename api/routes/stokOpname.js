@@ -96,6 +96,7 @@ router.get('/approval', requireAdmin, async (req, res, next) => {
         g.nama AS nama_gudang,
         so.tanggal,
         so.jenis_opname,
+        so.fase_periode,
         so.status,
         MIN(so.created_at) AS created_at,
         u.nama AS dicatat_oleh,
@@ -105,7 +106,7 @@ router.get('/approval', requireAdmin, async (req, res, next) => {
       JOIN gudang g ON g.id = so.gudang_id
       LEFT JOIN users u ON u.id = so.dicatat_oleh_user_id
       WHERE so.lokasi_tipe = 'gudang' AND so.status = 'menunggu'
-      GROUP BY so.sesi_id, g.nama, so.tanggal, so.jenis_opname,
+      GROUP BY so.sesi_id, g.nama, so.tanggal, so.jenis_opname, so.fase_periode,
                so.status, u.nama
       ORDER BY so.tanggal DESC, created_at DESC
     `);
@@ -121,7 +122,7 @@ router.get('/sesi/:sesiId', requireAdmin, async (req, res, next) => {
         so.id, so.item_id, i.nama AS nama_item, i.kode_barang, i.satuan,
         so.stok_sistem_atau_diterima AS stok_sistem,
         so.stok_fisik, so.selisih, so.sesi_id, so.status,
-        so.tanggal, so.jenis_opname, g.nama AS nama_gudang
+        so.tanggal, so.jenis_opname, so.fase_periode, g.nama AS nama_gudang
       FROM stok_opname so
       JOIN item i ON i.id = so.item_id
       JOIN gudang g ON g.id = so.gudang_id

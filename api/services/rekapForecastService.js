@@ -40,7 +40,7 @@ async function generateRekapForecast(periode) {
        JOIN item i ON i.id = so.item_id
        LEFT JOIN gudang g ON g.id = so.gudang_id
        LEFT JOIN outlet o ON o.id = so.outlet_id
-       WHERE so.periode = $1 AND so.jenis_opname = 'bulanan'
+       WHERE so.periode = $1 AND so.fase_periode = 'closing'
        ORDER BY so.lokasi_tipe, nama_lokasi, i.kode_barang`,
       [periode]
     );

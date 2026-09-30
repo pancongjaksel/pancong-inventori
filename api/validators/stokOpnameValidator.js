@@ -4,6 +4,7 @@ const { validasiAksesGudangAdmin } = require('./aksesGudangValidator');
 const REGEX_PERIODE = /^\d{4}-(0[1-9]|1[0-2])$/;
 const REGEX_TANGGAL = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/; // YYYY-MM-DD
 const JENIS_OPNAME = ['bulanan', 'dadakan'];
+const FASE_PERIODE = ['baseline', 'closing', 'spot_check'];
 
 function validasiFieldDasar({ itemId, stokFisik, periode, jenisOpname }) {
   if (!itemId) throw new AppError('Item wajib dipilih.', 400, 'ITEM_KOSONG');
@@ -31,6 +32,37 @@ function validasiTanggal(tanggal, periode) {
   }
 }
 
+function tanggalAkhirPeriode(periode) {
+  const [tahun, bulan] = periode.split('-').map(Number);
+  return new Date(Date.UTC(tahun, bulan, 0)).toISOString().slice(0, 10);
+}
+
+function tanggalJakartaHariIni() {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(new Date());
+  const nilai = Object.fromEntries(parts.filter((p) => p.type !== 'literal').map((p) => [p.type, p.value]));
+  return `${nilai.year}-${nilai.month}-${nilai.day}`;
+}
+
+function validasiFasePeriode({ fasePeriode, jenisOpname, tanggal, periode }) {
+  const fase = jenisOpname === 'dadakan' ? 'spot_check' : (fasePeriode || 'closing');
+  if (!FASE_PERIODE.includes(fase)) {
+    throw new AppError('Fase opname tidak valid.', 400, 'FASE_OPNAME_TIDAK_VALID');
+  }
+  if (fase === 'closing' && tanggal !== tanggalAkhirPeriode(periode)) {
+    throw new AppError(
+      `Closing periode ${periode} harus memakai tanggal akhir periode (${tanggalAkhirPeriode(periode)}).`,
+      400,
+      'TANGGAL_CLOSING_TIDAK_VALID'
+    );
+  }
+  if (fase === 'closing' && tanggal > tanggalJakartaHariIni()) {
+    throw new AppError('Closing periode belum dapat dibuat sebelum tanggal akhir periodenya.', 400, 'CLOSING_BELUM_WAKTUNYA');
+  }
+  return fase;
+}
+
 async function validasiBelumAdaOpname(client, { lokasiTipe, gudangId, outletId, itemId, periode, jenisOpname, tanggal, tipeOpname }) {
   if (lokasiTipe === 'gudang') {
     const jenis = jenisOpname || 'bulanan';
@@ -39,7 +71,7 @@ async function validasiBelumAdaOpname(client, { lokasiTipe, gudangId, outletId, 
       const { rows } = await client.query(
         `SELECT id FROM stok_opname
          WHERE lokasi_tipe = 'gudang' AND gudang_id = $1 AND item_id = $2
-         AND periode = $3 AND jenis_opname = 'bulanan'`,
+         AND periode = $3 AND fase_periode = 'closing'`,
         [gudangId, itemId, periode]
       );
       if (rows.length > 0) {
@@ -125,6 +157,7 @@ async function ambilStokAwalPeriode(client, { outletId, itemId, periode }) {
 module.exports = {
   validasiFieldDasar,
   validasiTanggal,
+  validasiFasePeriode,
   validasiBelumAdaOpname,
   validasiAksesGudangAdmin,
   hitungStokSistemGudang,

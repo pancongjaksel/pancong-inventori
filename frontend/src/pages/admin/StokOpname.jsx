@@ -2,6 +2,18 @@ import { useState, useEffect } from 'react';
 import { api, authStorage } from '../../api/client';
 import styles from './StokOpname.module.css';
 
+function tanggalAkhirPeriode(periode) {
+  const [tahun, bulan] = periode.split('-').map(Number);
+  const tanggal = new Date(tahun, bulan, 0);
+  return `${tanggal.getFullYear()}-${String(tanggal.getMonth() + 1).padStart(2, '0')}-${String(tanggal.getDate()).padStart(2, '0')}`;
+}
+
+function periodeClosingAwal() {
+  const sekarang = new Date();
+  if (sekarang.getDate() <= 3) sekarang.setMonth(sekarang.getMonth() - 1);
+  return `${sekarang.getFullYear()}-${String(sekarang.getMonth() + 1).padStart(2, '0')}`;
+}
+
 export default function StokOpname() {
   const isAdminGudang = authStorage.ambilDeviceRole() === 'admin_gudang';
 
@@ -10,14 +22,8 @@ export default function StokOpname() {
   const [outlets, setOutlets] = useState([]);
   const [selectedGudangId, setSelectedGudangId] = useState('');
   const [selectedOutletId, setSelectedOutletId] = useState('');
-  const [periode, setPeriode] = useState(() => {
-    const today = new Date();
-    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
-  });
-  const [tanggal, setTanggal] = useState(() => {
-    const today = new Date();
-    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  });
+  const [periode, setPeriode] = useState(periodeClosingAwal);
+  const [tanggal, setTanggal] = useState(() => tanggalAkhirPeriode(periodeClosingAwal()));
   const [jenisOpname, setJenisOpname] = useState('bulanan');
   const [tipeOpname, setTipeOpname] = useState('akhir');
   const [items, setItems] = useState([]);
@@ -28,6 +34,13 @@ export default function StokOpname() {
   const [successMsg, setSuccessMsg] = useState('');
   const [ringkasanSubmit, setRingkasanSubmit] = useState(null);
   const [pecahanInput, setPecahanInput] = useState({});
+
+  function ubahPeriode(value) {
+    setPeriode(value);
+    if (lokasiTipe === 'gudang' && jenisOpname === 'bulanan' && value) {
+      setTanggal(tanggalAkhirPeriode(value));
+    }
+  }
 
   useEffect(() => {
     (async () => {
@@ -167,6 +180,7 @@ export default function StokOpname() {
           ...(lokasiTipe === 'gudang' && {
             gudangId: Number(selectedGudangId),
             jenisOpname,
+            faseOpname: jenisOpname === 'bulanan' ? 'closing' : undefined,
             sesiId,
           }),
           ...(lokasiTipe === 'outlet' && { outletId: Number(selectedOutletId), tipeOpname }),
@@ -330,7 +344,7 @@ export default function StokOpname() {
             id="periode"
             type="month"
             value={periode}
-            onChange={(e) => setPeriode(e.target.value)}
+            onChange={(e) => ubahPeriode(e.target.value)}
             className={styles.input}
           />
         </div>
@@ -342,6 +356,7 @@ export default function StokOpname() {
             type="date"
             value={tanggal}
             onChange={(e) => setTanggal(e.target.value)}
+            disabled={lokasiTipe === 'gudang' && jenisOpname === 'bulanan'}
             className={styles.input}
           />
         </div>
@@ -355,12 +370,12 @@ export default function StokOpname() {
               onChange={(e) => setJenisOpname(e.target.value)}
               className={styles.select}
             >
-              <option value="bulanan">📅 Bulanan (Resmi, masuk laporan)</option>
+              <option value="bulanan">📅 Closing Periode (resmi, masuk laporan)</option>
               <option value="dadakan">⚡ Dadakan (Spot-check, cegah hilang)</option>
             </select>
             <small className={styles.hint}>
               {jenisOpname === 'bulanan'
-                ? 'SO bulanan akan dimasukkan ke laporan forecast bulanan. Max 1x per bulan.'
+                ? 'Closing memakai tanggal terakhir periode. Bisa dikirim terlambat setelah bulan berakhir; hasil approved menjadi baseline periode berikutnya. Satu closing resmi per periode.'
                 : 'SO dadakan untuk spot-check cegah barang hilang. Boleh berkali-kali dalam sebulan (asal beda tanggal) — tapi cuma 1x untuk tanggal yang sama, dan tidak masuk laporan resmi.'}
             </small>
           </div>
