@@ -6,6 +6,8 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 const DRAWER_ITEMS_ADMIN = [
   { to: '/admin/laporan', label: 'Laporan' },
   { to: '/admin/koreksi', label: 'Penyesuaian' },
+  { to: '/admin/opname/approval', label: 'Approval Opname Gudang' },
+  { to: '/admin/opname/approval-outlet', label: 'Approval Opname Outlet' },
   { to: '/admin/riwayat-transfer', label: 'Riwayat Pemindahan' },
   { to: '/admin/riwayat-barang-masuk', label: 'Riwayat Penerimaan' },
   { to: '/admin/item', label: 'Produk' },
@@ -14,7 +16,7 @@ const DRAWER_ITEMS_ADMIN = [
 ];
 
 const LAINNYA_PREFIXES_ADMIN = [
-  '/admin/laporan', '/admin/koreksi',
+  '/admin/laporan', '/admin/koreksi', '/admin/opname/approval', '/admin/opname/approval-outlet',
   '/admin/riwayat-transfer', '/admin/riwayat-barang-masuk',
   '/admin/item', '/admin/outlet', '/admin/user',
 ];
