@@ -148,6 +148,68 @@ router.get('/closing/selisih', requireAdmin, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+/**
+ * Ringkasan closing untuk Owner dan Admin Gudang.
+ * Selisih gudang bernilai positif berarti stok sistem lebih besar daripada
+ * hitungan fisik (potensi lost). Outlet tidak disebut lost: angka tersebut
+ * adalah pemakaian/HPP dari stok awal + pengambilan - stok akhir.
+ */
+router.get('/ringkasan-selisih', requireAdminOrGudang, async (req, res, next) => {
+  try {
+    const { periode } = req.query;
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(periode || '')) {
+      return res.status(400).json({ sukses: false, kode: 'PERIODE_TIDAK_VALID', pesan: 'Periode wajib berformat YYYY-MM.' });
+    }
+
+    const [gudangHasil, outletHasil] = await Promise.all([
+      pool.query(`
+        SELECT so.sesi_id, so.status, so.tanggal, so.periode, g.nama AS nama_lokasi,
+               i.kode_barang, i.nama AS nama_item, i.satuan,
+               so.stok_sistem_atau_diterima AS stok_sistem, so.stok_fisik, so.selisih,
+               COALESCE(i.harga, 0) AS harga_satuan,
+               ABS(so.selisih) * COALESCE(i.harga, 0) AS nilai_selisih
+        FROM stok_opname so
+        JOIN gudang g ON g.id = so.gudang_id
+        JOIN item i ON i.id = so.item_id
+        WHERE so.lokasi_tipe = 'gudang'
+          AND so.fase_periode = 'closing'
+          AND so.periode = $1
+          AND so.selisih <> 0
+        ORDER BY nilai_selisih DESC, g.nama, i.nama
+      `, [periode]),
+      pool.query(`
+        SELECT oo.id AS sesi_id, oo.status, oo.tanggal_opname AS tanggal,
+               o.nama AS nama_lokasi, i.kode_barang, i.nama AS nama_item, i.satuan,
+               ooi.stok_awal, ooi.pengambilan, ooi.stok_akhir, ooi.pemakaian,
+               ooi.harga AS harga_satuan, ooi.hpp AS nilai_pemakaian
+        FROM opname_outlet oo
+        JOIN outlet o ON o.id = oo.outlet_id
+        JOIN opname_outlet_item ooi ON ooi.opname_id = oo.id
+        JOIN item i ON i.id = ooi.item_id
+        WHERE oo.periode_dari = ($1 || '-01')::date
+          AND ooi.pemakaian <> 0
+        ORDER BY ooi.hpp DESC, o.nama, i.nama
+      `, [periode]),
+    ]);
+
+    const gudang = gudangHasil.rows;
+    const outlet = outletHasil.rows;
+    const ringkasanGudang = gudang.reduce((hasil, row) => {
+      const nilai = Number(row.nilai_selisih);
+      if (Number(row.selisih) > 0) hasil.potensi_lost += nilai;
+      else hasil.kelebihan_fisik += nilai;
+      hasil.total_nilai_selisih += nilai;
+      return hasil;
+    }, { jumlah_baris: gudang.length, potensi_lost: 0, kelebihan_fisik: 0, total_nilai_selisih: 0 });
+    const ringkasanOutlet = outlet.reduce((hasil, row) => {
+      hasil.total_hpp += Number(row.nilai_pemakaian);
+      return hasil;
+    }, { jumlah_baris: outlet.length, total_hpp: 0 });
+
+    res.json({ sukses: true, data: { periode, gudang: { ringkasan: ringkasanGudang, items: gudang }, outlet: { ringkasan: ringkasanOutlet, items: outlet } } });
+  } catch (err) { next(err); }
+});
+
 // GET /api/stok-opname/sesi/:sesiId — detail sesi
 router.get('/sesi/:sesiId', requireAdmin, async (req, res, next) => {
   try {

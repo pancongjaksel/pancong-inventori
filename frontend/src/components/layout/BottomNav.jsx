@@ -33,6 +33,7 @@ const DRAWER_ITEMS_GUDANG = [
   { to: '/admin-gudang/laporan', label: 'Laporan' },
   { to: '/admin-gudang/koreksi', label: 'Penyesuaian' },
   { to: '/admin-gudang/opname', label: 'Stok Opname' },
+  { to: '/admin-gudang/ringkasan-selisih', label: 'Selisih Closing' },
   { to: '/admin-gudang/riwayat-transfer', label: 'Riwayat Pemindahan' },
   { to: '/admin-gudang/riwayat-barang-masuk', label: 'Riwayat Penerimaan' },
 ];
@@ -41,6 +42,7 @@ const LAINNYA_PREFIXES_GUDANG = [
   '/admin-gudang/verifikasi',
   '/admin-gudang/laporan', '/admin-gudang/koreksi',
   '/admin-gudang/opname',
+  '/admin-gudang/ringkasan-selisih',
   '/admin-gudang/riwayat-transfer', '/admin-gudang/riwayat-barang-masuk',
 ];
 

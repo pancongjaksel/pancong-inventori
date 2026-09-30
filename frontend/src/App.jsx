@@ -32,6 +32,7 @@ const ManajemenDevice = lazy(() => import('./pages/admin/ManajemenDevice'));
 const StokGudang = lazy(() => import('./pages/admin/StokGudang'));
 const OpnameOutlet = lazy(() => import('./pages/admin/OpnameOutlet'));
 const ApprovalOpnameOutlet = lazy(() => import('./pages/admin/ApprovalOpnameOutlet'));
+const RingkasanSelisihOpname = lazy(() => import('./pages/admin/RingkasanSelisihOpname'));
 const RiwayatPengambilan = lazy(() => import('./pages/admin/RiwayatPengambilan'));
 const PengambilanDetailAdmin = lazy(() => import('./pages/admin/PengambilanDetailAdmin'));
 const RiwayatTransfer = lazy(() => import('./pages/admin/RiwayatTransfer'));
@@ -74,6 +75,7 @@ export default function App() {
           <Route index element={<StokSaatIni />} />
           <Route path="stok-saat-ini" element={<StokSaatIni />} />
           <Route path="opname" element={<StokOpname />} />
+          <Route path="ringkasan-selisih" element={<RingkasanSelisihOpname />} />
           <Route path="laporan" element={<LaporanForecast />} />
           <Route path="koreksi" element={<KoreksiTransaksi />} />
           <Route path="riwayat-transfer" element={<RiwayatTransfer />} />
@@ -100,6 +102,7 @@ export default function App() {
           <Route path="transfer" element={<TransferGudang />} />
           <Route path="stok" element={<StokGudang />} />
           <Route path="opname" element={<StokOpname />} />
+          <Route path="ringkasan-selisih" element={<RingkasanSelisihOpname />} />
           <Route path="opname/approval" element={<ApprovalOpname />} />
           <Route path="opname/approval-outlet" element={<ApprovalOpnameOutlet />} />
           <Route path="koreksi" element={<KoreksiTransaksi />} />

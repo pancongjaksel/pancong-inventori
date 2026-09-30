@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { to: '/admin-gudang/transaksi/pengeluaran', label: 'Pengeluaran', indent: true },
   { to: '/admin-gudang/verifikasi', label: 'Verifikasi Penerimaan' },
   { to: '/admin-gudang/opname', label: 'Stok Opname' },
+  { to: '/admin-gudang/ringkasan-selisih', label: 'Selisih Closing' },
   { to: '/admin-gudang/laporan', label: 'Laporan' },
   { to: '/admin-gudang/koreksi', label: 'Penyesuaian' },
   { to: '/admin-gudang/riwayat-transfer', label: 'Riwayat Pemindahan' },
