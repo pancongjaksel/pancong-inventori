@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api, authStorage } from '../../api/client';
 import styles from './StokOpname.module.css';
 
@@ -16,6 +17,7 @@ function periodeClosingAwal() {
 
 export default function StokOpname() {
   const isAdminGudang = authStorage.ambilDeviceRole() === 'admin_gudang';
+  const navigate = useNavigate();
 
   const [lokasiTipe, setLokasiTipe] = useState('gudang');
   const [gudangs, setGudangs] = useState([]);
@@ -265,10 +267,10 @@ export default function StokOpname() {
               Stok Opname Gudang
             </button>
             <button
-              className={`${styles.toggleBtn} ${lokasiTipe === 'outlet' ? styles.active : ''}`}
-              onClick={() => setLokasiTipe('outlet')}
+              className={styles.toggleBtn}
+              onClick={() => navigate(`${isAdminGudang ? '/admin-gudang' : '/admin'}/laporan?tab=opname_outlet`)}
             >
-              Stok Opname Outlet
+              SO Outlet & HPP ↗
             </button>
           </div>
         </div>

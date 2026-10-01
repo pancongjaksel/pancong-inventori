@@ -73,7 +73,11 @@ export default function OpnameOutletCrew() {
 
         // Pengambilan per item_id
         const peta = {};
-        pengambilanData.forEach((r) => { peta[r.item_id] = Number(r.total_diambil ?? 0); });
+        // API mengembalikan peta { item_id: total_diambil }, bukan array.
+        // Membaca sebagai array membuat form crew berhenti sebelum bisa diisi.
+        Object.entries(pengambilanData || {}).forEach(([itemId, total]) => {
+          peta[itemId] = Number(total ?? 0);
+        });
         setPengambilan(peta);
 
         // Stok awal per item
@@ -148,7 +152,7 @@ export default function OpnameOutletCrew() {
         items: itemsPayload,
       }, { auth: 'device' });
 
-      setOpnameIdBaru(hasil.id);
+      setOpnameIdBaru(hasil.opname_id);
       setStep('selesai');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Gagal menyimpan opname.');

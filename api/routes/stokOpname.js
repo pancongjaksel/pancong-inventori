@@ -1,6 +1,6 @@
 const express = require('express');
 const { requireAdminOrGudang, requireAdmin, requireDevice } = require('../middleware/authMiddleware');
-const { buatOpnameGudang, buatOpnameOutlet, buatOpnameOutletCrew } = require('../services/stokOpnameService');
+const { buatOpnameGudang } = require('../services/stokOpnameService');
 const { generateRekapForecast, generateRekapForecastExcel } = require('../services/rekapForecastService');
 const { pool } = require('../db/pool');
 
@@ -16,31 +16,19 @@ router.post('/gudang', requireAdminOrGudang, async (req, res, next) => {
   }
 });
 
-/** POST /api/stok-opname/outlet/crew (device crew biasa — gudang dari token) */
+/** Jalur lama. Opname outlet sekarang wajib memakai /api/opname-outlet agar HPP lengkap. */
 router.post('/outlet/crew', requireDevice, async (req, res, next) => {
   try {
-    const { outletId, itemId, stokFisik, periode, stokAwalManual, tanggal, tipeOpname } = req.body;
-    const hasil = await buatOpnameOutletCrew({
-      outletId,
-      itemId,
-      stokFisik,
-      periode,
-      deviceId: req.device.id ?? null,
-      stokAwalManual,
-      tanggal,
-      tipeOpname,
-    });
-    res.status(201).json({ sukses: true, data: hasil });
+    res.status(410).json({ sukses: false, kode: 'JALUR_OPNAME_OUTLET_LAMA', pesan: 'Halaman ini sudah diperbarui. Muat ulang aplikasi lalu gunakan Opname Outlet agar HPP tercatat lengkap.' });
   } catch (err) {
     next(err);
   }
 });
 
-/** POST /api/stok-opname/outlet (admin/owner atau device Admin Gudang) */
+/** Jalur lama Admin Gudang — sengaja dihentikan agar tidak membuat data HPP terpisah. */
 router.post('/outlet', requireAdminOrGudang, async (req, res, next) => {
   try {
-    const hasil = await buatOpnameOutlet({ ...req.body, userId: req.user.id });
-    res.status(201).json({ sukses: true, data: hasil });
+    res.status(410).json({ sukses: false, kode: 'JALUR_OPNAME_OUTLET_LAMA', pesan: 'Gunakan menu Laporan → Opname Outlet. Jalur lama ditutup agar stok awal, pengambilan, dan HPP tersimpan dalam satu data.' });
   } catch (err) {
     next(err);
   }

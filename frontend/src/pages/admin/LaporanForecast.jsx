@@ -21,7 +21,10 @@ const TABS = [
 export default function LaporanForecast() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [tab, setTab] = useState('forecast');
+  const [tab, setTab] = useState(() => {
+    const requested = new URLSearchParams(location.search).get('tab');
+    return TABS.some((item) => item.key === requested) ? requested : 'forecast';
+  });
   const [periode, setPeriode] = useState(periodeSekarang());
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -32,6 +35,11 @@ export default function LaporanForecast() {
   const [belanjaData, setBelanjaData] = useState(null);
   const [loadingBelanja, setLoadingBelanja] = useState(false);
   const [downloadingBelanja, setDownloadingBelanja] = useState(false);
+
+  useEffect(() => {
+    const requested = new URLSearchParams(location.search).get('tab');
+    if (TABS.some((item) => item.key === requested)) setTab(requested);
+  }, [location.search]);
 
   useEffect(() => {
     api.get('/master/gudangs')

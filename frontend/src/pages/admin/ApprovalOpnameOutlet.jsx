@@ -6,6 +6,8 @@ export default function ApprovalOpnameOutlet() {
   const [loading, setLoading] = useState(true);
   const [catatanReject, setCatatanReject] = useState({});
   const [loadingAksi, setLoadingAksi] = useState({});
+  const [detail, setDetail] = useState({});
+  const [memuatDetail, setMemuatDetail] = useState({});
   const [error, setError] = useState('');
 
   async function muatPending() {
@@ -51,6 +53,24 @@ export default function ApprovalOpnameOutlet() {
     }
   }
 
+  async function toggleDetail(id) {
+    if (detail[id]) {
+      setDetail(prev => ({ ...prev, [id]: null }));
+      return;
+    }
+    setMemuatDetail(prev => ({ ...prev, [id]: true }));
+    try {
+      const hasil = await api.get(`/opname-outlet/${id}/detail`);
+      setDetail(prev => ({ ...prev, [id]: hasil }));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Gagal memuat rincian opname.');
+    } finally {
+      setMemuatDetail(prev => ({ ...prev, [id]: false }));
+    }
+  }
+
+  const rupiah = (nilai) => `Rp ${Number(nilai || 0).toLocaleString('id-ID')}`;
+
   return (
     <div>
       <p className="label">Approval Opname Outlet</p>
@@ -68,6 +88,27 @@ export default function ApprovalOpnameOutlet() {
           <div style={{ fontSize: 12, color: 'var(--warna-abu)', marginBottom: 12 }}>
             Dikirim oleh: {op.dibuat_oleh}
           </div>
+          <button className="tombol tombol--sekunder"
+            style={{ width: 'auto', padding: '5px 12px', fontSize: 12, marginBottom: 10 }}
+            onClick={() => toggleDetail(op.id)}>
+            {memuatDetail[op.id] ? 'Memuat...' : detail[op.id] ? 'Tutup rincian' : 'Lihat rincian HPP'}
+          </button>
+          {detail[op.id] && (
+            <div style={{ marginBottom: 12, borderTop: '1px solid var(--warna-garis)', paddingTop: 8 }}>
+              {detail[op.id].items.map(item => (
+                <div key={item.item_id} style={{ padding: '7px 0', borderBottom: '1px solid var(--warna-garis)', fontSize: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                    <strong>{item.nama}</strong><strong>{rupiah(item.hpp)}</strong>
+                  </div>
+                  <div style={{ color: 'var(--warna-abu)', marginTop: 2 }}>
+                    Awal {item.stok_awal} + Ambil {item.pengambilan} − Akhir {item.stok_akhir ?? 0} = Pakai {item.pemakaian}
+                  </div>
+                  {item.catatan && <div style={{ color: 'var(--warna-abu)', fontStyle: 'italic', marginTop: 2 }}>{item.catatan}</div>}
+                </div>
+              ))}
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: 13 }}><strong>Total HPP</strong><strong>{rupiah(detail[op.id].items.reduce((sum, item) => sum + Number(item.hpp || 0), 0))}</strong></div>
+            </div>
+          )}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button className="tombol tombol--primer"
               style={{ width: 'auto', padding: '6px 16px' }}

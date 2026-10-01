@@ -250,8 +250,11 @@ router.get('/:id/detail', requireAnyAuth, async (req, res, next) => {
 router.post('/', requireAnyAuth, async (req, res, next) => {
   const { outlet_id, tanggal_opname, periode_dari, periode_sampai, items } = req.body;
   const dibuat_oleh = req.user?.nama ?? req.device?.nama ?? 'Crew';
-  const dari_crew = req.device && !req.user?.role?.includes('admin');
-  const status = dari_crew ? 'menunggu_approval' : 'approved';
+  // Crew dan Admin Gudang sama-sama perlu approval Owner. Hanya Owner/Admin
+  // yang memasukkan langsung boleh menghasilkan opname outlet approved.
+  const status = req.user?.role === 'owner' || req.user?.role === 'admin'
+    ? 'approved'
+    : 'menunggu_approval';
 
   if (!outlet_id || !tanggal_opname || !periode_dari || !periode_sampai || !items?.length) {
     return res.status(400).json({ sukses: false, pesan: 'Data tidak lengkap.' });
