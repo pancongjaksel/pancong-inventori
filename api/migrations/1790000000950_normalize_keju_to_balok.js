@@ -36,8 +36,8 @@ exports.up = (pgm) => {
           INSERT INTO stok_ledger
             (item_id, gudang_id, tipe_pergerakan, qty_delta, referensi_tabel, referensi_id, tanggal, event_key, source_version)
           VALUES
-            (v_slop_id, r.gudang_id, 'konversi_satuan', -r.saldo_slop, 'konversi_satuan_keju', v_slop_id, CURRENT_DATE, v_event_key, 1),
-            (v_balok_id, r.gudang_id, 'konversi_satuan', r.saldo_slop * 8, 'konversi_satuan_keju', v_slop_id, CURRENT_DATE, v_event_key || '-balok', 1);
+            (v_slop_id, r.gudang_id, 'opname_penyesuaian', -r.saldo_slop, 'konversi_satuan_keju', v_slop_id, CURRENT_DATE, v_event_key, 1),
+            (v_balok_id, r.gudang_id, 'opname_penyesuaian', r.saldo_slop * 8, 'konversi_satuan_keju', v_slop_id, CURRENT_DATE, v_event_key || '-balok', 1);
         END IF;
       END LOOP;
 
