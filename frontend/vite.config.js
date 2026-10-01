@@ -29,6 +29,12 @@ export default defineConfig({
       // di-fallback ke index.html), jadi selalu blank kayak buka halaman app
       // yang salah, meski server-side (nginx/express.static) udah bener.
       workbox: {
+        // Perubahan alur operasional (contoh SO Outlet) tidak boleh menunggu
+        // browser ditutup berhari-hari. Worker baru langsung menggantikan
+        // cache aplikasi lama dan mengambil alih tab yang sedang terbuka.
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
         navigateFallbackDenylist: [/^\/uploads\//],
       },
       manifest: {
