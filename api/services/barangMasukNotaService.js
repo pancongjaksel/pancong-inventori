@@ -10,6 +10,7 @@ const {
 } = require('../validators/barangMasukNotaValidator');
 const { beginIdempotent, finishIdempotent } = require('./idempotencyService');
 const { AppError } = require('../errors/AppError');
+const { normalisasiItemMasukKeju } = require('./kejuKonversiService');
 const { resolveVendor } = require('./vendorService');
 
 function normalisasiSatuan(satuan) {
@@ -32,6 +33,10 @@ async function hitungJumlahStok(client, { itemId, jumlah, satuan }) {
   };
 }
 
+async function normalisasiItemsKeju(client, items) {
+  return Promise.all(items.map((item) => normalisasiItemMasukKeju(client, item)));
+}
+
 async function buatNotaAdmin(input) {
   const { gudangId, items, sumber, vendorId, vendorBaru, fotoBuktiUrl, adminUserId, tanggal } = input;
   const idempotencyKey = input.idempotencyKey;
@@ -41,7 +46,8 @@ async function buatNotaAdmin(input) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const idem = await beginIdempotent(client, { key: idempotencyKey, actorType: 'user', actorId: adminUserId, endpoint: '/api/barang-masuk-nota/admin', body: input });
+    const itemsNormal = await normalisasiItemsKeju(client, items);
+    const idem = await beginIdempotent(client, { key: idempotencyKey, actorType: 'user', actorId: adminUserId, endpoint: '/api/barang-masuk-nota/admin', body: { ...input, items: itemsNormal } });
     if (idem.duplicate) { await client.query('ROLLBACK'); return idem.response_body; }
     await validasiInputAdminNota(client, { userId: adminUserId, gudangId });
     const vendor = await resolveVendor(client, { vendorId, vendorBaru, sumberLegacy: sumber });
@@ -63,7 +69,7 @@ async function buatNotaAdmin(input) {
     );
     const notaId = rows[0].id;
 
-    for (const it of items) {
+    for (const it of itemsNormal) {
       const { jumlahStok } = await hitungJumlahStok(client, it);
       await client.query(
         `INSERT INTO transaksi_masuk_item (nota_id, item_id, jumlah, jumlah_stok, satuan, harga_beli)
@@ -107,7 +113,8 @@ async function buatNotaAdminGudang(input) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const idem = await beginIdempotent(client, { key: idempotencyKey, actorType: 'user', actorId: adminGudangUserId, endpoint: '/api/barang-masuk-nota/admin-gudang', body: input });
+    const itemsNormal = await normalisasiItemsKeju(client, items);
+    const idem = await beginIdempotent(client, { key: idempotencyKey, actorType: 'user', actorId: adminGudangUserId, endpoint: '/api/barang-masuk-nota/admin-gudang', body: { ...input, items: itemsNormal } });
     if (idem.duplicate) { await client.query('ROLLBACK'); return idem.response_body; }
     await validasiInputAdminGudangNota(client, { userId: adminGudangUserId, gudangId });
     const vendor = await resolveVendor(client, { vendorId, vendorBaru, sumberLegacy: sumber });
@@ -121,7 +128,7 @@ async function buatNotaAdminGudang(input) {
     );
     const notaId = rows[0].id;
 
-    for (const it of items) {
+    for (const it of itemsNormal) {
       const { jumlahStok } = await hitungJumlahStok(client, it);
       await client.query(
         `INSERT INTO transaksi_masuk_item (nota_id, item_id, jumlah, jumlah_stok, satuan, harga_beli)
@@ -151,7 +158,8 @@ async function buatNotaCrew(input) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const idem = await beginIdempotent(client, { key: idempotencyKey, actorType: 'crew', actorId: input.crewId ?? `legacy:${namaCrewInput}`, endpoint: '/api/barang-masuk-nota/crew', body: input });
+    const itemsNormal = await normalisasiItemsKeju(client, items);
+    const idem = await beginIdempotent(client, { key: idempotencyKey, actorType: 'crew', actorId: input.crewId ?? `legacy:${namaCrewInput}`, endpoint: '/api/barang-masuk-nota/crew', body: { ...input, items: itemsNormal } });
     if (idem.duplicate) { await client.query('ROLLBACK'); return idem.response_body; }
     await validasiInputCrewNota(client, { gudangId, namaCrewInput });
     const vendor = await resolveVendor(client, { vendorId, vendorBaru, sumberLegacy: sumber });
@@ -165,7 +173,7 @@ async function buatNotaCrew(input) {
     );
     const notaId = rows[0].id;
 
-    for (const it of items) {
+    for (const it of itemsNormal) {
       const { jumlahStok } = await hitungJumlahStok(client, it);
       await client.query(
         `INSERT INTO transaksi_masuk_item (nota_id, item_id, jumlah, jumlah_stok, satuan)

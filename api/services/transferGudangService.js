@@ -1,18 +1,22 @@
 const { pool } = require('../db/pool');
 const { beginIdempotent, finishIdempotent } = require('./idempotencyService');
 const { validasiSebelumKirim, validasiSebelumTerima } = require('../validators/transferGudangValidator');
+const { normalisasiDaftarKeju } = require('./kejuKonversiService');
 
 /**
  * Langkah 1/2 — Kirim (5.4). INSERT ke transfer_gudang dengan status default
  * 'dikirim'; trigger trg_transfer_ke_ledger otomatis kurangi stok gudang asal.
  */
 async function kirimTransfer(input) {
-  const { itemId, gudangAsalId, gudangTujuanId, jumlah, fotoBuktiKirimUrl, dikirimOlehUserId, dikirimOlehRole } = input;
+  let { itemId, gudangAsalId, gudangTujuanId, jumlah, fotoBuktiKirimUrl, dikirimOlehUserId, dikirimOlehRole } = input;
   const requiresApproval = dikirimOlehRole === 'admin_gudang';
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    const [itemNormal] = await normalisasiDaftarKeju(client, [{ itemId, qty: jumlah }]);
+    itemId = itemNormal.itemId;
+    jumlah = itemNormal.qty;
     await validasiSebelumKirim(client, {
       itemId,
       gudangAsalId,

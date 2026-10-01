@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, authStorage, ApiError } from '../api/client';
 import QtyStepper from '../components/QtyStepper';
+import KejuQtyInput, { formatKeju } from '../components/KejuQtyInput';
 
 function formatTanggal(tanggalStr) {
   const today = new Date();
@@ -198,14 +199,16 @@ export default function AmbilBarang() {
             <div key={row.itemId} className="kartu" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                 <div>
                   <div style={{ fontWeight: 600 }}>{row.nama}</div>
-                  <div style={{ fontSize: 13, color: 'var(--warna-abu)' }}>{row.qty} {row.satuan}</div>
+                  <div style={{ fontSize: 13, color: 'var(--warna-abu)' }}>{row.kodeBarang === 'X-004' ? formatKeju(row.qty) : `${row.qty} ${row.satuan}`}</div>
                   {petunjukSatuanCrew({ kode_barang: row.kodeBarang }) && (
                     <div style={{ fontSize: 11, color: 'var(--warna-karamel)', marginTop: 3, fontWeight: 600 }}>
                       {petunjukSatuanCrew({ kode_barang: row.kodeBarang })}
                     </div>
                   )}
               </div>
-              <QtyStepper value={row.qty} onChange={(qty) => ubahQty(row.itemId, qty)} />
+              {row.kodeBarang === 'X-004'
+                ? <KejuQtyInput value={row.qty} onChange={(qty) => ubahQty(row.itemId, qty)} compact />
+                : <QtyStepper value={row.qty} onChange={(qty) => ubahQty(row.itemId, qty)} />}
             </div>
           ))}
         </div>
@@ -254,7 +257,9 @@ export default function AmbilBarang() {
                     </div>
                   )}
                 </div>
-                <QtyStepper value={cart[item.id] || 0} onChange={(qty) => ubahQty(item.id, qty)} />
+                {item.kode_barang === 'X-004'
+                  ? <KejuQtyInput value={cart[item.id] || 0} onChange={(qty) => ubahQty(item.id, qty)} />
+                  : <QtyStepper value={cart[item.id] || 0} onChange={(qty) => ubahQty(item.id, qty)} />}
               </div>
             ))}
 

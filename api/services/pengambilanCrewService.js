@@ -6,6 +6,7 @@ const {
 } = require('../validators/pengambilanCrewValidator');
 const { onPengambilanDibuat } = require('./aktivitasPengambilanService');
 const { beginIdempotent, finishIdempotent } = require('./idempotencyService');
+const { normalisasiDaftarKeju } = require('./kejuKonversiService');
 
 /**
  * Buat sesi pengambilan crew (5.2 di PRD): 1 sesi bisa banyak item.
@@ -32,12 +33,16 @@ async function buatSesiPengambilanCrew(input) {
   try {
     await client.query('BEGIN');
 
+    // PWA lama mungkin masih mengirim X-002 dalam slop. Semua stok baru
+    // harus memakai balok X-004, sehingga validasi dan ledger konsisten.
+    const daftarItemNormal = await normalisasiDaftarKeju(client, daftarItem);
+
     const idem = await beginIdempotent(client, {
       key: idempotencyKey,
       actorType: 'crew',
       actorId: crewId ?? `legacy:${namaCrew}`,
       endpoint: '/api/sesi-pengambilan-crew',
-      body: { gudangAsalId, outletTujuanId, daftarItem },
+      body: { gudangAsalId, outletTujuanId, daftarItem: daftarItemNormal },
     });
     if (idem.duplicate) {
       await client.query('ROLLBACK');
@@ -46,9 +51,9 @@ async function buatSesiPengambilanCrew(input) {
 
     // 2) Validasi bisnis — pakai `client` yang sama biar dalam 1 transaksi
     await validasiOutletTujuan(client, { gudangAsalId, outletTujuanId });
-    await validasiLaranganBahanAdonan(client, daftarItem);
+    await validasiLaranganBahanAdonan(client, daftarItemNormal);
 
-    for (const { itemId, qty } of daftarItem) {
+    for (const { itemId, qty } of daftarItemNormal) {
       await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`stok:${gudangAsalId}:${itemId}`]);
       const { rows: stokRows } = await client.query(
         'SELECT stok_saat_ini FROM v_stok_gudang_saat_ini WHERE gudang_id = $1 AND item_id = $2',
@@ -75,7 +80,7 @@ async function buatSesiPengambilanCrew(input) {
 
     // 4) Insert semua baris item (trigger trg_pengambilan_item_ke_ledger
     //    otomatis nulis ke stok_ledger tiap baris ini di-insert)
-    for (const { itemId, qty } of daftarItem) {
+    for (const { itemId, qty } of daftarItemNormal) {
       await client.query(
         `INSERT INTO sesi_pengambilan_item (sesi_id, item_id, qty)
          VALUES ($1, $2, $3)`,

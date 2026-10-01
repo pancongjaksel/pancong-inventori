@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, authStorage } from '../../api/client';
 import styles from './StokOpname.module.css';
+import KejuQtyInput from '../../components/KejuQtyInput';
 
 function tanggalAkhirPeriode(periode) {
   const [tahun, bulan] = periode.split('-').map(Number);
@@ -412,6 +413,15 @@ export default function StokOpname() {
                     )}
                     <td>
                       {(() => {
+                        if (item.kode_barang === 'X-004') {
+                          return (
+                            <KejuQtyInput
+                              value={opnameData[item.id] ?? 0}
+                              onChange={(qty) => handleStokFisikChange(item.id, String(qty))}
+                              compact
+                            />
+                          );
+                        }
                         const faktorInfo = parseFaktorSatuan(item.satuan);
                         if (!faktorInfo) {
                           return (

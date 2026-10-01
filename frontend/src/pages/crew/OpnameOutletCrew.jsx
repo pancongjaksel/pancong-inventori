@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, ApiError } from '../../api/client';
+import KejuQtyInput, { formatKeju } from '../../components/KejuQtyInput';
 
 const BASE = '/opname-outlet';
 
@@ -351,37 +352,26 @@ export default function OpnameOutletCrew() {
                         Sistem
                       </div>
                       <div style={{ fontFamily: 'var(--font-angka)', fontSize: 16, fontWeight: 700, color: 'var(--warna-arang)' }}>
-                        {sistem.toLocaleString('id-ID')}
+                        {item.kode_barang === 'X-004' ? formatKeju(sistem) : sistem.toLocaleString('id-ID')}
                       </div>
                     </div>
                     <div>
                       <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--warna-abu)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>
                         Fisik
                       </div>
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        value={fisik[item.id] ?? ''}
-                        onChange={(e) => {
-                          setFisik((prev) => ({ ...prev, [item.id]: e.target.value }));
+                      {item.kode_barang === 'X-004' ? (
+                        <KejuQtyInput value={fisik[item.id] ?? 0} onChange={(qty) => {
+                          setFisik((prev) => ({ ...prev, [item.id]: String(qty) }));
                           if (error) setError(null);
-                        }}
-                        placeholder="—"
-                        style={{
-                          width: '100%',
-                          height: 44,
-                          borderRadius: 9,
-                          border: `2px solid ${belumDiisi ? 'var(--warna-garis)' : 'var(--warna-karamel)'}`,
-                          background: 'white',
-                          color: 'var(--warna-arang)',
-                          fontFamily: 'var(--font-angka)',
-                          fontSize: 18,
-                          fontWeight: 700,
-                          textAlign: 'center',
-                          outline: 'none',
-                          padding: '0 8px',
-                        }}
-                      />
+                        }} compact />
+                      ) : (
+                        <input
+                          type="number" inputMode="decimal" value={fisik[item.id] ?? ''}
+                          onChange={(e) => { setFisik((prev) => ({ ...prev, [item.id]: e.target.value })); if (error) setError(null); }}
+                          placeholder="—"
+                          style={{ width: '100%', height: 44, borderRadius: 9, border: `2px solid ${belumDiisi ? 'var(--warna-garis)' : 'var(--warna-karamel)'}`, background: 'white', color: 'var(--warna-arang)', fontFamily: 'var(--font-angka)', fontSize: 18, fontWeight: 700, textAlign: 'center', outline: 'none', padding: '0 8px' }}
+                        />
+                      )}
                     </div>
                     <div>
                       <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--warna-abu)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>

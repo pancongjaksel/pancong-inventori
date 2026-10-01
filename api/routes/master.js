@@ -114,6 +114,7 @@ router.get('/items-outlet', requireAnyAuth, async (req, res, next) => {
       SELECT id, nama, kode_barang, kategori, satuan, harga
       FROM item
       WHERE (kategori IN ('Topping', 'Kemasan') OR kode_barang = 'BA-008')
+        AND kode_barang <> 'X-002'
         AND status_aktif = true
       ORDER BY kategori, nama
     `);
