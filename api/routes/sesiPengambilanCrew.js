@@ -41,7 +41,7 @@ router.get('/', requireAdminOrGudang, async (req, res, next) => {
       JOIN item i ON i.id = spi.item_id
       WHERE ${kondisi.join(' AND ')}
       GROUP BY spc.id, ga.nama, o.nama
-      ORDER BY spc.created_at DESC
+      ORDER BY spc.tanggal DESC, spc.created_at DESC
       LIMIT $${params.length - 1} OFFSET $${params.length}
     `, params);
     res.status(200).json({ sukses: true, data: rows });
@@ -76,7 +76,7 @@ router.get('/saya', requireDevice, async (req, res, next) => {
       JOIN item i ON i.id = spi.item_id
       WHERE spc.gudang_asal_id = $1 AND spc.nama_crew = $2 ${kondisiTanggal}
       GROUP BY spc.id, ga.nama, o.nama
-      ORDER BY spc.created_at DESC
+      ORDER BY spc.tanggal DESC, spc.created_at DESC
       LIMIT 50
     `, [req.device.gudangId, req.device.nama]);
     res.status(200).json({ sukses: true, data: rows });
@@ -125,7 +125,7 @@ const riwayatGudangHandler = async (req, res, next) => {
       WHERE spc.gudang_asal_id = $1
         ${kondisiTanggal}
       GROUP BY spc.id, o.nama
-      ORDER BY spc.created_at DESC
+      ORDER BY spc.tanggal DESC, spc.created_at DESC
       LIMIT $2 OFFSET $3
     `, [gudangId, batas, mulai]);
 

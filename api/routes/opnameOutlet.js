@@ -98,7 +98,7 @@ router.get('/pending', requireAdminOrGudang, async (req, res, next) => {
        FROM opname_outlet oo
        JOIN outlet o ON o.id = oo.outlet_id
        WHERE oo.status = 'menunggu_approval'
-       ORDER BY oo.created_at DESC`
+       ORDER BY oo.tanggal_opname DESC, oo.created_at DESC`
     );
     res.json({ sukses: true, data: rows });
   } catch (err) {

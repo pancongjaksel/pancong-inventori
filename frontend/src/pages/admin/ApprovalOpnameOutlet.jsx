@@ -83,10 +83,10 @@ export default function ApprovalOpnameOutlet() {
         <div key={op.id} className="kartu" style={{ marginBottom: 12 }}>
           <div style={{ fontWeight: 600, fontSize: 14 }}>{op.nama_outlet}</div>
           <div style={{ fontSize: 12, color: 'var(--warna-abu)', marginBottom: 4 }}>
-            Tanggal: {op.tanggal_opname?.slice(0, 10)} · Periode: {op.periode_dari?.slice(0, 10)} s/d {op.periode_sampai?.slice(0, 10)}
+            Stok fisik: {op.tanggal_opname?.slice(0, 10)} · Periode: {op.periode_dari?.slice(0, 10)} s/d {op.periode_sampai?.slice(0, 10)}
           </div>
           <div style={{ fontSize: 12, color: 'var(--warna-abu)', marginBottom: 12 }}>
-            Dikirim oleh: {op.dibuat_oleh}
+            Diinput oleh: {op.dibuat_oleh} · {op.created_at ? new Date(op.created_at).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '-'}
           </div>
           <button className="tombol tombol--sekunder"
             style={{ width: 'auto', padding: '5px 12px', fontSize: 12, marginBottom: 10 }}

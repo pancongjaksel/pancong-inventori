@@ -291,11 +291,11 @@ async function listNota(status, filters = {}) {
   }
   if (filters.dari) {
     params.push(filters.dari);
-    kondisi.push(`tmn.created_at >= $${params.length}::date`);
+    kondisi.push(`tmn.tanggal >= $${params.length}::date`);
   }
   if (filters.sampai) {
     params.push(filters.sampai);
-    kondisi.push(`tmn.created_at < ($${params.length}::date + INTERVAL '1 day')`);
+    kondisi.push(`tmn.tanggal <= $${params.length}::date`);
   }
   if (filters.search?.trim()) {
     params.push(`%${filters.search.trim()}%`);
@@ -310,7 +310,7 @@ async function listNota(status, filters = {}) {
      JOIN gudang g ON g.id = tmn.gudang_id
      LEFT JOIN users u ON u.id = tmn.diinput_oleh_user_id
      WHERE ${kondisi.length ? kondisi.join(' AND ') : 'TRUE'}
-     ORDER BY tmn.created_at DESC
+     ORDER BY tmn.tanggal DESC, tmn.created_at DESC, tmn.id DESC
      LIMIT $${params.length - 1} OFFSET $${params.length}`,
     params
   );

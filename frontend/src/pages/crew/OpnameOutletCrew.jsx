@@ -186,7 +186,7 @@ export default function OpnameOutletCrew() {
               style={{ width: '100%', height: 46, border: '1px solid var(--warna-garis)', borderRadius: 10, padding: '0 12px', fontSize: 15, background: 'white' }}
             />
             <div style={{ fontSize: 12, color: 'var(--warna-abu)', marginTop: 6 }}>
-              Closing selalu menghitung sampai {new Date(`${periodeSampai}T00:00:00`).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}. Pada tanggal 1–3, periode bulan lalu dipilih otomatis.
+              Stok fisik dicatat pada {new Date(`${periodeSampai}T00:00:00`).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}. Kamu boleh input terlambat; waktu input dan approval tidak mengubah periode closing.
             </div>
           </div>
 
