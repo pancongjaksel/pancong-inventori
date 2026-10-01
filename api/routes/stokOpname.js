@@ -259,25 +259,53 @@ router.post('/sesi/:sesiId/approve', requireAdmin, async (req, res, next) => {
   const client = await pool.connect();
   try {
     const { sesuaikanStok = false } = req.body;
+    await client.query('BEGIN');
     const { rows: items } = await client.query(
-      "SELECT * FROM stok_opname WHERE sesi_id = $1 AND lokasi_tipe = 'gudang'",
+      "SELECT * FROM stok_opname WHERE sesi_id = $1 AND lokasi_tipe = 'gudang' FOR UPDATE",
       [req.params.sesiId]
     );
-    if (items.length === 0) return res.status(404).json({ sukses: false, pesan: 'Sesi tidak ditemukan.' });
+    if (items.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ sukses: false, pesan: 'Sesi tidak ditemukan.' });
+    }
     if (items[0].status === 'diapprove') {
+      await client.query('ROLLBACK');
       return res.status(400).json({ sukses: false, pesan: 'Sesi sudah diapprove sebelumnya.' });
     }
 
-    await client.query('BEGIN');
-
     if (sesuaikanStok) {
+      const { rows: closingLebihBaru } = await client.query(`
+        SELECT i.nama AS nama_item, g.nama AS nama_gudang, so.tanggal AS tanggal_opname, newer.tanggal AS tanggal_closing
+        FROM stok_opname so
+        JOIN item i ON i.id = so.item_id
+        JOIN gudang g ON g.id = so.gudang_id
+        JOIN stok_opname newer ON newer.item_id = so.item_id
+          AND newer.gudang_id = so.gudang_id
+          AND newer.lokasi_tipe = 'gudang'
+          AND newer.fase_periode = 'closing'
+          AND newer.tanggal > so.tanggal
+        WHERE so.sesi_id = $1
+          AND so.lokasi_tipe = 'gudang'
+          AND so.selisih <> 0
+        GROUP BY i.nama, g.nama, so.tanggal, newer.tanggal
+        ORDER BY newer.tanggal ASC
+      `, [req.params.sesiId]);
+      if (closingLebihBaru.length) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({
+          sukses: false,
+          kode: 'OPNAME_SUDAH_DILEWATI_CLOSING',
+          pesan: 'Stok tidak dapat disesuaikan: sudah ada closing yang lebih baru. Approve tanpa centang penyesuaian untuk menyimpan sesi ini sebagai arsip.',
+          data: closingLebihBaru,
+        });
+      }
       for (const item of items) {
         if (Number(item.selisih) !== 0) {
           await client.query(`
             INSERT INTO stok_ledger
               (item_id, gudang_id, tipe_pergerakan, qty_delta, referensi_tabel, referensi_id, tanggal)
-            VALUES ($1, $2, 'opname_penyesuaian', $3, 'stok_opname', $4, now())
-          `, [item.item_id, item.gudang_id, -Number(item.selisih), item.id]);
+            VALUES ($1, $2, 'opname_penyesuaian', $3, 'stok_opname', $4, $5)
+          `, [item.item_id, item.gudang_id, -Number(item.selisih), item.id, item.tanggal]);
         }
       }
     }
