@@ -41,6 +41,7 @@ export default function AmbilBarang() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [sesiId, setSesiId] = useState(null);
+  const [stokTersedia, setStokTersedia] = useState({});
 
   const [riwayat, setRiwayat] = useState([]);
   const [riwayatLoading, setRiwayatLoading] = useState(false);
@@ -57,10 +58,12 @@ export default function AmbilBarang() {
     Promise.all([
       api.get('/master/items?konteks=crew'),
       api.get('/master/outlets'),
+      api.get('/sesi-pengambilan-crew/stok-tersedia', { auth: 'device' }),
     ])
-      .then(([itemData, outletData]) => {
+      .then(([itemData, outletData, stokData]) => {
         setItems(itemData);
         setOutlets(outletData);
+        setStokTersedia(stokData || {});
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : 'Gagal memuat data.'));
   }, [navigate]);
@@ -95,7 +98,8 @@ export default function AmbilBarang() {
   const jumlahItemDiCart = Object.values(cart).filter((qty) => qty > 0).length;
 
   function ubahQty(itemId, qty) {
-    setCart((prev) => ({ ...prev, [itemId]: qty }));
+    const max = Number(stokTersedia[itemId] ?? 0);
+    setCart((prev) => ({ ...prev, [itemId]: Math.min(Number(qty) || 0, max) }));
   }
 
   function lanjutKeReview() {
@@ -143,7 +147,8 @@ export default function AmbilBarang() {
     setIdempotencyKey(crypto.randomUUID());
   }
 
-  const bisaKirim = namaCrew.trim().length > 0 && outletTujuanId !== '' && jumlahItemDiCart > 0;
+  const stokCukup = daftarCartUntukReview.every((row) => row.qty <= Number(stokTersedia[row.itemId] ?? 0));
+  const bisaKirim = namaCrew.trim().length > 0 && outletTujuanId !== '' && jumlahItemDiCart > 0 && stokCukup;
 
   // ---------- Tahap: SELESAI ----------
   if (tahap === 'selesai') {
@@ -251,6 +256,9 @@ export default function AmbilBarang() {
                 <div>
                   <div style={{ fontWeight: 600 }}>{item.nama}</div>
                   <div style={{ fontSize: 13, color: 'var(--warna-abu)' }}>{item.satuan}</div>
+                  <div style={{ fontSize: 12, color: 'var(--warna-karamel)', marginTop: 3, fontWeight: 600 }}>
+                    Stok: {item.kode_barang === 'X-004' ? formatKeju(stokTersedia[item.id] ?? 0) : `${stokTersedia[item.id] ?? 0} ${item.satuan}`}
+                  </div>
                   {petunjukSatuanCrew(item) && (
                     <div style={{ fontSize: 11, color: 'var(--warna-karamel)', marginTop: 3, fontWeight: 600 }}>
                       {petunjukSatuanCrew(item)}

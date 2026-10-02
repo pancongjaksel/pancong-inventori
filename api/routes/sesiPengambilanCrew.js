@@ -6,6 +6,17 @@ const { onCatatanDitambahkan } = require('../services/aktivitasPengambilanServic
 
 const router = express.Router();
 
+// Stok real-time khusus gudang pada device Crew; gudang tidak boleh dikirim dari browser.
+router.get('/stok-tersedia', requireDevice, async (req, res, next) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT item_id, stok_saat_ini FROM v_stok_gudang_saat_ini WHERE gudang_id = $1`,
+      [req.device.gudangId]
+    );
+    res.json({ sukses: true, data: Object.fromEntries(rows.map((r) => [r.item_id, Number(r.stok_saat_ini)])) });
+  } catch (err) { next(err); }
+});
+
 /**
  * GET /api/sesi-pengambilan-crew — riwayat sesi terbaru (Admin)
  */
