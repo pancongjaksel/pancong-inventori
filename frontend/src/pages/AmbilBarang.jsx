@@ -266,7 +266,7 @@ export default function AmbilBarang() {
                   )}
                 </div>
                 {item.kode_barang === 'X-004'
-                  ? <KejuQtyInput value={cart[item.id] || 0} onChange={(qty) => ubahQty(item.id, qty)} />
+                  ? <KejuQtyInput value={cart[item.id] || 0} onChange={(qty) => ubahQty(item.id, qty)} showExamples />
                   : <QtyStepper value={cart[item.id] || 0} onChange={(qty) => ubahQty(item.id, qty)} />}
               </div>
             ))}
