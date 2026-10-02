@@ -56,12 +56,19 @@ async function buatSesiPengambilanCrew(input) {
     for (const { itemId, qty } of daftarItemNormal) {
       await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`stok:${gudangAsalId}:${itemId}`]);
       const { rows: stokRows } = await client.query(
-        'SELECT stok_saat_ini FROM v_stok_gudang_saat_ini WHERE gudang_id = $1 AND item_id = $2',
+        `SELECT v.stok_saat_ini, i.nama, i.kode_barang
+         FROM v_stok_gudang_saat_ini v JOIN item i ON i.id = v.item_id
+         WHERE v.gudang_id = $1 AND v.item_id = $2`,
         [gudangAsalId, itemId],
       );
       if (Number(stokRows[0]?.stok_saat_ini ?? 0) < Number(qty)) {
-        const err = new Error(`Stok tidak cukup untuk item id=${itemId}.`);
-        err.status = 400;
+        const tersedia = Number(stokRows[0]?.stok_saat_ini ?? 0);
+        const nama = stokRows[0]?.nama ?? 'barang ini';
+        const detailKeju = stokRows[0]?.kode_barang === 'X-004'
+          ? ` Tersedia ${tersedia} balok (${Math.floor(tersedia / 8)} slop + ${tersedia % 8} balok).`
+          : ` Tersedia ${tersedia}.`;
+        const err = new Error(`Stok ${nama} tidak cukup.${detailKeju}`);
+        err.statusCode = 409;
         err.code = 'STOK_TIDAK_CUKUP';
         throw err;
       }
