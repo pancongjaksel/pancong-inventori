@@ -56,6 +56,13 @@ export default function ApprovalCenter() {
   }
 
   if (!data && !error) return <p style={{ color: 'var(--warna-abu)' }}>Memuat antrean approval...</p>;
+  if (!data && error) return (
+    <div>
+      <h1 style={{ fontSize: 24, margin: '0 0 12px' }}>Approval</h1>
+      <div className="pesan-error">{error}</div>
+      <button className="tombol tombol--sekunder" style={{ width: 'auto', marginTop: 12 }} onClick={muat}>Coba lagi</button>
+    </div>
+  );
 
   return (
     <div style={{ paddingBottom: 28 }}>

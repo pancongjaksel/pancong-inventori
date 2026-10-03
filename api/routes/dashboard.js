@@ -212,7 +212,7 @@ router.get('/approval-queue', requireAdmin, async (req, res, next) => {
         ORDER BY n.created_at ASC
       `),
       pool.query(`
-        SELECT tg.id, tg.tanggal_kirim, tg.created_at, tg.jumlah, tg.foto_bukti_kirim_url,
+        SELECT tg.id, tg.tanggal_kirim AS created_at, tg.jumlah, tg.foto_bukti_kirim_url,
                ga.nama AS gudang_asal, gt.nama AS gudang_tujuan,
                i.nama AS nama_item, i.satuan, COALESCE(u.nama, 'Admin Gudang') AS dibuat_oleh
         FROM transfer_gudang tg
