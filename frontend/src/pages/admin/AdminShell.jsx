@@ -58,7 +58,7 @@ export default function AdminShell() {
         </main>
       </div>
 
-      <BottomNav role="admin" />
+      <BottomNav role={user?.role === 'owner' ? 'owner' : 'admin'} />
     </div>
   );
 }

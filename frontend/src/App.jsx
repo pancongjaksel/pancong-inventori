@@ -13,6 +13,7 @@ import NotifikasiCrew from './pages/crew/NotifikasiCrew';
 const AdminGudangShell = lazy(() => import('./pages/AdminGudangShell'));
 const AdminShell = lazy(() => import('./pages/admin/AdminShell'));
 const Dashboard = lazy(() => import('./pages/admin/Dashboard'));
+const ApprovalCenter = lazy(() => import('./pages/admin/ApprovalCenter'));
 const BarangMasukAdmin = lazy(() => import('./pages/admin/BarangMasukAdmin'));
 const BarangMasukAdminGudang = lazy(() => import('./pages/admin/BarangMasukAdminGudang'));
 const VerifikasiBarangMasuk = lazy(() => import('./pages/admin/VerifikasiBarangMasuk'));
@@ -97,6 +98,7 @@ export default function App() {
 
         <Route path="/admin" element={<AdminShell />}>
           <Route index element={<Dashboard />} />
+          <Route path="approval" element={<ApprovalCenter />} />
           <Route path="barang-masuk" element={<BarangMasukAdmin />} />
           <Route path="verifikasi" element={<VerifikasiBarangMasuk />} />
           <Route path="transfer" element={<TransferGudang />} />

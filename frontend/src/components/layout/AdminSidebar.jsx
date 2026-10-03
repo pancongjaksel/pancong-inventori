@@ -6,9 +6,8 @@ const NAV_ITEMS = [
   { to: '/admin/barang-masuk', label: 'Penerimaan' },
   { to: '/admin/transfer', label: 'Pemindahan' },
   { to: '/admin/opname', label: 'Opname', end: true },
+  { to: '/admin/approval', label: 'Approval', ownerOnly: true },
   { to: '/admin/ringkasan-selisih', label: 'Selisih Closing' },
-  { to: '/admin/opname/approval', label: 'Approval Opname Gudang' },
-  { to: '/admin/opname/approval-outlet', label: 'Approval Opname Outlet' },
   { to: '/admin/koreksi', label: 'Penyesuaian' },
   { to: '/admin/laporan', label: 'Laporan' },
   { to: '/admin/stok-saat-ini', label: 'Persediaan' },
@@ -37,7 +36,7 @@ export default function AdminSidebar({ user, roleLabel, onLogout }) {
       </div>
 
       <nav className="admin-sidebar__nav">
-        {NAV_ITEMS.map((item) => (
+        {NAV_ITEMS.filter((item) => !item.ownerOnly || user?.role === 'owner').map((item) => (
           <NavLink
             key={item.to}
             to={item.to}

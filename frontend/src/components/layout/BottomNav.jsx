@@ -7,8 +7,6 @@ const DRAWER_ITEMS_ADMIN = [
   { to: '/admin/laporan', label: 'Laporan' },
   { to: '/admin/koreksi', label: 'Penyesuaian' },
   { to: '/admin/ringkasan-selisih', label: 'Selisih Closing' },
-  { to: '/admin/opname/approval', label: 'Approval Opname Gudang' },
-  { to: '/admin/opname/approval-outlet', label: 'Approval Opname Outlet' },
   { to: '/admin/riwayat-transfer', label: 'Riwayat Pemindahan' },
   { to: '/admin/riwayat-barang-masuk', label: 'Riwayat Penerimaan' },
   { to: '/admin/item', label: 'Produk' },
@@ -16,8 +14,13 @@ const DRAWER_ITEMS_ADMIN = [
   { to: '/admin/user', label: 'Pengguna' },
 ];
 
+const DRAWER_ITEMS_OWNER = [
+  { to: '/admin/approval', label: 'Approval' },
+  ...DRAWER_ITEMS_ADMIN,
+];
+
 const LAINNYA_PREFIXES_ADMIN = [
-  '/admin/laporan', '/admin/koreksi', '/admin/ringkasan-selisih', '/admin/opname/approval', '/admin/opname/approval-outlet',
+  '/admin/approval', '/admin/laporan', '/admin/koreksi', '/admin/ringkasan-selisih', '/admin/opname/approval', '/admin/opname/approval-outlet',
   '/admin/riwayat-transfer', '/admin/riwayat-barang-masuk',
   '/admin/item', '/admin/outlet', '/admin/user',
 ];
@@ -216,7 +219,7 @@ export default function BottomNav({ role }) {
       transaksiPath="/admin/transaksi"
       transaksiPrefixes={TRANSAKSI_PREFIXES_ADMIN}
       lainnyaPrefixes={LAINNYA_PREFIXES_ADMIN}
-      drawerItems={DRAWER_ITEMS_ADMIN}
+      drawerItems={role === 'owner' ? DRAWER_ITEMS_OWNER : DRAWER_ITEMS_ADMIN}
     />
   );
 }

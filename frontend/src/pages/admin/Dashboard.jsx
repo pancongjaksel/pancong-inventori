@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, ApiError } from '../../api/client';
-import ApprovalCenterCards from '../../components/ApprovalCenterCards';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -289,26 +288,24 @@ export default function Dashboard() {
       icon: '↗',
       label: `${attnTransfer} pemindahan menunggu konfirmasi penerimaan`,
       sublabel: 'Barang dikirim, belum dikonfirmasi diterima',
-      onClick: () => navigate('/admin/riwayat-transfer'),
+      onClick: () => navigate('/admin/approval'),
     },
     attnNota > 0 && {
       icon: '📋',
       label: `${attnNota} penerimaan barang menunggu verifikasi`,
       sublabel: 'Diinput crew, menunggu approval owner',
-      onClick: () => navigate('/admin/verifikasi'),
+      onClick: () => navigate('/admin/approval'),
     },
     attnOpname > 0 && {
       icon: '⏳',
       label: `${attnOpname} opname outlet menunggu approval`,
       sublabel: 'Disubmit crew, belum disetujui',
-      onClick: () => navigate('/admin/opname/approval-outlet'),
+      onClick: () => navigate('/admin/approval'),
     },
   ].filter(Boolean);
 
   return (
     <div style={{ paddingBottom: 80 }}>
-      <ApprovalCenterCards role="owner" />
-
       {/* ── SECTION 1: TODAY SUMMARY ── */}
       <div style={{ padding: '16px 16px 0' }}>
         <div style={{

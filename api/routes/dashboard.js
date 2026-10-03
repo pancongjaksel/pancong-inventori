@@ -185,4 +185,101 @@ router.get('/approval-center', requireAdminOrGudang, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+/**
+ * Satu antrean untuk keputusan Owner. Setiap tipe transaksi tetap diproses
+ * dengan aturan asalnya; endpoint ini hanya menyatukan navigasi dan prioritas.
+ */
+router.get('/approval-queue', requireAdmin, async (req, res, next) => {
+  if (req.user.role !== 'owner') {
+    return res.status(403).json({ sukses: false, kode: 'AKSES_DITOLAK', pesan: 'Antrean approval hanya untuk Owner.' });
+  }
+
+  try {
+    const [penerimaanRes, transferRes, opnameGudangRes, opnameOutletRes, transferTerimaRes] = await Promise.all([
+      pool.query(`
+        SELECT n.id, n.tanggal, n.created_at, n.sumber, n.foto_bukti_url,
+               g.nama AS nama_gudang,
+               COALESCE(u.nama, n.nama_crew_input, 'Crew') AS dibuat_oleh,
+               COALESCE(n.diinput_oleh_role, 'crew') AS role_input,
+               COALESCE(string_agg(i.nama || ' × ' || ni.jumlah::text || ' ' || i.satuan, ', ' ORDER BY i.nama), '-') AS ringkasan
+        FROM transaksi_masuk_nota n
+        JOIN gudang g ON g.id = n.gudang_id
+        LEFT JOIN users u ON u.id = n.diinput_oleh_user_id
+        LEFT JOIN transaksi_masuk_item ni ON ni.nota_id = n.id
+        LEFT JOIN item i ON i.id = ni.item_id
+        WHERE n.status_verifikasi = 'menunggu'
+        GROUP BY n.id, g.nama, u.nama
+        ORDER BY n.created_at ASC
+      `),
+      pool.query(`
+        SELECT tg.id, tg.tanggal_kirim, tg.created_at, tg.jumlah, tg.foto_bukti_kirim_url,
+               ga.nama AS gudang_asal, gt.nama AS gudang_tujuan,
+               i.nama AS nama_item, i.satuan, COALESCE(u.nama, 'Admin Gudang') AS dibuat_oleh
+        FROM transfer_gudang tg
+        JOIN gudang ga ON ga.id = tg.gudang_asal_id
+        JOIN gudang gt ON gt.id = tg.gudang_tujuan_id
+        JOIN item i ON i.id = tg.item_id
+        LEFT JOIN users u ON u.id = tg.dikirim_oleh_user_id
+        WHERE tg.status = 'menunggu_approval' AND tg.status_verifikasi = 'menunggu'
+        ORDER BY tg.tanggal_kirim ASC, tg.id ASC
+      `),
+      pool.query(`
+        SELECT so.sesi_id, g.nama AS nama_gudang, MIN(so.tanggal)::date AS tanggal_opname,
+               MIN(so.created_at) AS created_at, COALESCE(u.nama, 'Admin Gudang') AS dibuat_oleh,
+               COUNT(*)::int AS jumlah_item,
+               COALESCE(SUM(ABS(so.selisih) * COALESCE(i.harga, 0)), 0)::numeric AS nilai_selisih
+        FROM stok_opname so
+        JOIN gudang g ON g.id = so.gudang_id
+        JOIN item i ON i.id = so.item_id
+        LEFT JOIN users u ON u.id = so.dicatat_oleh_user_id
+        WHERE so.lokasi_tipe = 'gudang'
+          AND so.status = 'menunggu'
+          AND so.sesi_id IS NOT NULL
+        GROUP BY so.sesi_id, g.nama, u.nama
+        ORDER BY MIN(so.tanggal) ASC, MIN(so.created_at) ASC
+      `),
+      pool.query(`
+        SELECT oo.id, o.nama AS nama_outlet, oo.tanggal_opname, oo.periode_dari, oo.periode_sampai,
+               oo.created_at, oo.dibuat_oleh,
+               COALESCE(SUM(ooi.hpp), 0)::numeric AS total_hpp
+        FROM opname_outlet oo
+        JOIN outlet o ON o.id = oo.outlet_id
+        LEFT JOIN opname_outlet_item ooi ON ooi.opname_id = oo.id
+        WHERE oo.status = 'menunggu_approval'
+        GROUP BY oo.id, o.nama
+        ORDER BY oo.tanggal_opname ASC, oo.created_at ASC
+      `),
+      pool.query(`
+        SELECT COUNT(*)::int AS jumlah
+        FROM transfer_gudang
+        WHERE status = 'dikirim'
+      `),
+    ]);
+
+    const queues = {
+      penerimaan: penerimaanRes.rows,
+      transfer: transferRes.rows,
+      opname_gudang: opnameGudangRes.rows,
+      opname_outlet: opnameOutletRes.rows,
+    };
+    const total = Object.values(queues).reduce((sum, rows) => sum + rows.length, 0);
+    res.json({
+      sukses: true,
+      data: {
+        queues,
+        ringkasan: {
+          total,
+          penerimaan: queues.penerimaan.length,
+          transfer: queues.transfer.length,
+          opname_gudang: queues.opname_gudang.length,
+          opname_outlet: queues.opname_outlet.length,
+          transfer_menunggu_diterima: transferTerimaRes.rows[0].jumlah,
+        },
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;
