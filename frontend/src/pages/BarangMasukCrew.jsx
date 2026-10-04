@@ -4,6 +4,7 @@ import { api, authStorage, ApiError } from '../api/client';
 import UploadFoto from '../components/UploadFoto';
 import VendorField from '../components/VendorField';
 import InboundUnitHint from '../components/InboundUnitHint';
+import InboundUnitField from '../components/InboundUnitField';
 
 export default function BarangMasukCrew() {
   const navigate = useNavigate();
@@ -33,7 +34,7 @@ export default function BarangMasukCrew() {
 
   function pilihItemBaris(idx, itemId) {
     const item = items.find((i) => String(i.id) === itemId);
-    ubahBaris(idx, { itemId, satuan: item?.satuan || '' });
+    ubahBaris(idx, { itemId, satuan: item?.kode_barang === 'X-004' ? 'Slop' : (item?.satuan || '') });
   }
 
   function tambahBaris() {
@@ -136,11 +137,7 @@ export default function BarangMasukCrew() {
               </div>
               <div className="field" style={{ flex: 1 }}>
                 <label className="label">Satuan</label>
-                <input
-                  className="input-teks"
-                  value={row.satuan}
-                  onChange={(e) => ubahBaris(idx, { satuan: e.target.value })}
-                />
+                <InboundUnitField item={items.find((item) => String(item.id) === String(row.itemId))} value={row.satuan} onChange={(satuan) => ubahBaris(idx, { satuan })} />
               </div>
             </div>
             <InboundUnitHint item={items.find((item) => String(item.id) === String(row.itemId))} jumlah={row.jumlah} satuan={row.satuan} />

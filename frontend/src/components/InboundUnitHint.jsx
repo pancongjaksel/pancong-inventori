@@ -3,7 +3,9 @@ function normalize(value) {
 }
 
 export default function InboundUnitHint({ item, jumlah, satuan }) {
-  const conversion = (item?.konversi_penerimaan || []).find(
+  const conversion = item?.kode_barang === 'X-004' && normalize(satuan) === 'balok 250 gr'
+    ? { faktor_ke_stok: 1 }
+    : (item?.konversi_penerimaan || []).find(
     (row) => normalize(row.satuan_beli) === normalize(satuan),
   );
   const qty = Number(jumlah);

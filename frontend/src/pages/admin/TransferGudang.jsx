@@ -12,7 +12,8 @@ export default function TransferGudang() {
   const [error, setError] = useState(null);
   const [prosesId, setProsesId] = useState(null);
 
-  const [form, setForm] = useState({ itemId: '', gudangAsalId: '', gudangTujuanId: '', jumlah: '', fotoBuktiKirimUrl: '' });
+  const [form, setForm] = useState({ itemId: '', gudangAsalId: '', gudangTujuanId: '', jumlah: '', satuanInput: '', fotoBuktiKirimUrl: '' });
+  const itemDipilih = items.find((item) => String(item.id) === String(form.itemId));
   const [fotoTerimaPerId, setFotoTerimaPerId] = useState({});
 
   function muatUlang() {
@@ -39,9 +40,10 @@ export default function TransferGudang() {
         gudangAsalId: Number(form.gudangAsalId),
         gudangTujuanId: Number(form.gudangTujuanId),
         jumlah: Number(form.jumlah),
+        satuanInput: form.satuanInput || undefined,
         fotoBuktiKirimUrl: form.fotoBuktiKirimUrl,
       });
-      setForm({ itemId: '', gudangAsalId: '', gudangTujuanId: '', jumlah: '', fotoBuktiKirimUrl: '' });
+      setForm({ itemId: '', gudangAsalId: '', gudangTujuanId: '', jumlah: '', satuanInput: '', fotoBuktiKirimUrl: '' });
       setTab('menunggu');
       muatUlang();
     } catch (err) {
@@ -119,7 +121,7 @@ export default function TransferGudang() {
               {/* Ringkasan qty + pengirim */}
               <div style={{ fontSize: 13, marginBottom: 10 }}>
                 <span style={{ fontFamily: 'var(--font-angka)', fontWeight: 700, fontSize: 15 }}>
-                  {tf.jumlah} {tf.satuan}
+                  {tf.jumlah_input ?? tf.jumlah} {tf.satuan_input ?? tf.satuan}
                 </span>
                 <span style={{ color: 'var(--warna-abu)', marginLeft: 8 }}>· dikirim oleh {tf.dikirim_oleh_nama}</span>
               </div>
@@ -157,7 +159,7 @@ export default function TransferGudang() {
         <form onSubmit={kirimTransferBaru}>
           <div className="field">
             <label className="label">Item</label>
-            <select className="input-teks" value={form.itemId} onChange={(e) => setForm((f) => ({ ...f, itemId: e.target.value }))} required>
+            <select className="input-teks" value={form.itemId} onChange={(e) => { const item = items.find((x) => String(x.id) === e.target.value); setForm((f) => ({ ...f, itemId: e.target.value, satuanInput: item?.kode_barang === 'X-004' ? 'Slop' : '' })); }} required>
               <option value="">Pilih item</option>
               {items.map((i) => <option key={i.id} value={i.id}>{i.nama}</option>)}
             </select>
@@ -180,6 +182,16 @@ export default function TransferGudang() {
             <label className="label">Jumlah</label>
             <input type="number" className="input-teks" value={form.jumlah} onChange={(e) => setForm((f) => ({ ...f, jumlah: e.target.value }))} required />
           </div>
+          {itemDipilih?.kode_barang === 'X-004' && (
+            <div className="field">
+              <label className="label">Satuan Keju</label>
+              <select className="input-teks" value={form.satuanInput} onChange={(e) => setForm((f) => ({ ...f, satuanInput: e.target.value }))}>
+                <option value="Slop">Slop (8 balok @ 250 gr)</option>
+                <option value="Balok 250 gr">Balok 250 gr</option>
+              </select>
+              {Number(form.jumlah) > 0 && <div style={{ fontSize: 12, color: 'var(--warna-abu)', marginTop: 5 }}>{form.satuanInput === 'Slop' ? `${Number(form.jumlah) * 8} balok akan dipindahkan.` : `${form.jumlah} balok akan dipindahkan.`}</div>}
+            </div>
+          )}
           <UploadFoto
             label="Foto bukti kirim"
             value={form.fotoBuktiKirimUrl}

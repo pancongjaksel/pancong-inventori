@@ -1,22 +1,24 @@
 const { pool } = require('../db/pool');
 const { beginIdempotent, finishIdempotent } = require('./idempotencyService');
 const { validasiSebelumKirim, validasiSebelumTerima } = require('../validators/transferGudangValidator');
-const { normalisasiDaftarKeju } = require('./kejuKonversiService');
+const { normalisasiTransferKeju } = require('./kejuKonversiService');
 
 /**
  * Langkah 1/2 — Kirim (5.4). INSERT ke transfer_gudang dengan status default
  * 'dikirim'; trigger trg_transfer_ke_ledger otomatis kurangi stok gudang asal.
  */
 async function kirimTransfer(input) {
-  let { itemId, gudangAsalId, gudangTujuanId, jumlah, fotoBuktiKirimUrl, dikirimOlehUserId, dikirimOlehRole } = input;
+  let { itemId, gudangAsalId, gudangTujuanId, jumlah, satuanInput, fotoBuktiKirimUrl, dikirimOlehUserId, dikirimOlehRole } = input;
   const requiresApproval = dikirimOlehRole === 'admin_gudang';
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const [itemNormal] = await normalisasiDaftarKeju(client, [{ itemId, qty: jumlah }]);
+    const jumlahInput = jumlah;
+    const itemNormal = await normalisasiTransferKeju(client, { itemId, qty: jumlah, satuanInput });
     itemId = itemNormal.itemId;
     jumlah = itemNormal.qty;
+    satuanInput = itemNormal.satuanInput;
     await validasiSebelumKirim(client, {
       itemId,
       gudangAsalId,
@@ -28,10 +30,10 @@ async function kirimTransfer(input) {
 
     const { rows } = await client.query(
       `INSERT INTO transfer_gudang
-         (item_id, gudang_asal_id, gudang_tujuan_id, jumlah, foto_bukti_kirim_url, dikirim_oleh_user_id, sumber_transaksi, dibuat_oleh_role, dibuat_oleh_user_id, status, status_verifikasi)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $6, $9, $10)
+         (item_id, gudang_asal_id, gudang_tujuan_id, jumlah, jumlah_input, satuan_input, foto_bukti_kirim_url, dikirim_oleh_user_id, sumber_transaksi, dibuat_oleh_role, dibuat_oleh_user_id, status, status_verifikasi)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $8, $11, $12)
        RETURNING id, status`,
-      [itemId, gudangAsalId, gudangTujuanId, jumlah, fotoBuktiKirimUrl, dikirimOlehUserId, dikirimOlehRole || 'admin', dikirimOlehRole || 'admin', requiresApproval ? 'menunggu_approval' : 'dikirim', requiresApproval ? 'menunggu' : 'approved']
+      [itemId, gudangAsalId, gudangTujuanId, jumlah, jumlahInput, satuanInput, fotoBuktiKirimUrl, dikirimOlehUserId, dikirimOlehRole || 'admin', dikirimOlehRole || 'admin', requiresApproval ? 'menunggu_approval' : 'dikirim', requiresApproval ? 'menunggu' : 'approved']
     );
 
     await client.query('COMMIT');

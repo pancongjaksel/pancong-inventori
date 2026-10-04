@@ -32,4 +32,13 @@ async function normalisasiItemMasukKeju(client, item) {
   return { ...item, itemId: balokId, satuan: 'Slop' };
 }
 
-module.exports = { normalisasiDaftarKeju, normalisasiItemMasukKeju };
+async function normalisasiTransferKeju(client, { itemId, qty, satuanInput }) {
+  const { slopId, balokId } = await petaKeju(client);
+  const unit = String(satuanInput || '').trim().toLowerCase();
+  if (Number(itemId) === slopId) return { itemId: balokId, qty: Number(qty) * 8, satuanInput: 'Slop' };
+  if (Number(itemId) !== balokId) return { itemId: Number(itemId), qty: Number(qty), satuanInput: satuanInput || null };
+  if (unit === 'slop') return { itemId: balokId, qty: Number(qty) * 8, satuanInput: 'Slop' };
+  return { itemId: balokId, qty: Number(qty), satuanInput: 'Balok 250 gr' };
+}
+
+module.exports = { normalisasiDaftarKeju, normalisasiItemMasukKeju, normalisasiTransferKeju };

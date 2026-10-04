@@ -36,7 +36,7 @@ router.get('/', requireAdminOrGudang, async (req, res, next) => {
     params.push(batas, mulai);
     const queryText = `
       SELECT
-        tg.id, tg.jumlah, tg.status, tg.label_status, tg.status_verifikasi, tg.sumber_transaksi, tg.dibuat_oleh_role,
+        tg.id, tg.jumlah, tg.jumlah_input, tg.satuan_input, tg.status, tg.label_status, tg.status_verifikasi, tg.sumber_transaksi, tg.dibuat_oleh_role,
         tg.foto_bukti_kirim_url, tg.foto_bukti_terima_url,
         tg.tanggal_kirim, tg.tanggal_terima,
         i.kode_barang, i.nama AS nama_item, i.satuan,
@@ -64,7 +64,7 @@ router.get('/:id', requireAdminOrGudang, async (req, res, next) => {
   try {
     const { rows } = await pool.query(`
       SELECT
-        tg.id, tg.jumlah, tg.status, tg.label_status, tg.status_verifikasi, tg.sumber_transaksi, tg.dibuat_oleh_role,
+        tg.id, tg.jumlah, tg.jumlah_input, tg.satuan_input, tg.status, tg.label_status, tg.status_verifikasi, tg.sumber_transaksi, tg.dibuat_oleh_role,
         tg.foto_bukti_kirim_url, tg.foto_bukti_terima_url,
         tg.tanggal_kirim, tg.tanggal_terima,
         i.kode_barang, i.nama AS nama_item, i.satuan,
